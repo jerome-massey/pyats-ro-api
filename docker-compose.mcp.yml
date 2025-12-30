@@ -1,0 +1,119 @@
+version: '3.8'
+
+# Docker Compose configuration for PyATS API with MCP support
+# This configuration runs multiple services from the same image:
+# 1. REST API (FastAPI) on port 8000
+# 2. MCP SSE server on port 3000
+# 3. MCP stdio server (on-demand, no long-running process)
+
+services:
+  # REST API (existing functionality - unchanged)
+  pyats-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: pyats-unified:latest
+    container_name: pyats-api
+    ports:
+      - "8000:8000"
+    environment:
+      # API Configuration
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+      - API_WORKERS=1
+      - LOG_LEVEL=INFO
+      
+      # Jumphost Configuration (Optional)
+      # Uncomment and configure if using jumphost
+      # - JUMPHOST_HOST=jumphost.example.com
+      # - JUMPHOST_PORT=22
+      # - JUMPHOST_USERNAME=jumpuser
+      # - JUMPHOST_KEY_PATH=/root/.ssh/jumphost_key
+    
+    volumes:
+      # Mount SSH keys if using jumphost
+      # Uncomment and adjust path to your SSH private key
+      # - ~/.ssh/id_rsa:/root/.ssh/jumphost_key:ro
+      
+      # Optional: Mount examples for testing
+      - ./examples:/app/examples
+    
+    command: python run.py
+    restart: unless-stopped
+    
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # MCP Server - SSE Transport (for remote MCP clients)
+  pyats-mcp-sse:
+    image: pyats-unified:latest
+    container_name: pyats-mcp-sse
+    ports:
+      - "3000:3000"
+    environment:
+      # MCP Configuration
+      - MCP_HOST=0.0.0.0
+      - MCP_PORT=3000
+      - LOG_LEVEL=INFO
+      
+      # Jumphost Configuration (Optional)
+      # Shares same config as REST API
+      # - JUMPHOST_HOST=jumphost.example.com
+      # - JUMPHOST_PORT=22
+      # - JUMPHOST_USERNAME=jumpuser
+      # - JUMPHOST_KEY_PATH=/root/.ssh/jumphost_key
+    
+    volumes:
+      # Mount SSH keys if using jumphost
+      # - ~/.ssh/id_rsa:/root/.ssh/jumphost_key:ro
+      
+      # Optional: Mount examples
+      - ./examples:/app/examples
+    
+    command: python mcp_sse.py
+    restart: unless-stopped
+    
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # MCP Server - stdio Transport (for local MCP clients like Claude Desktop)
+  # This service is NOT started automatically - it's invoked on-demand
+  # Usage: docker-compose -f docker-compose.mcp.yml run --rm pyats-mcp-stdio
+  pyats-mcp-stdio:
+    image: pyats-unified:latest
+    container_name: pyats-mcp-stdio
+    environment:
+      - LOG_LEVEL=INFO
+      
+      # Jumphost Configuration (Optional)
+      # - JUMPHOST_HOST=jumphost.example.com
+      # - JUMPHOST_PORT=22
+      # - JUMPHOST_USERNAME=jumpuser
+      # - JUMPHOST_KEY_PATH=/root/.ssh/jumphost_key
+    
+    volumes:
+      # Mount SSH keys if using jumphost
+      # - ~/.ssh/id_rsa:/root/.ssh/jumphost_key:ro
+      
+      # Optional: Mount examples
+      - ./examples:/app/examples
+    
+    # No ports - stdio uses stdin/stdout
+    stdin_open: true
+    tty: true
+    command: python mcp_stdio.py
+    # No restart policy - invoked on demand
+    profiles:
+      - tools  # This prevents auto-start with docker-compose up
+
+networks:
+  default:
+    name: pyats-network

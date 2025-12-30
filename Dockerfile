@@ -22,11 +22,16 @@ RUN pip install --no-cache-dir --upgrade pip && \
 COPY app/ ./app/
 COPY run.py .
 
+# Copy MCP server files
+COPY mcp_server.py .
+COPY mcp_stdio.py .
+COPY mcp_sse.py .
+
 # Create directory for SSH keys
 RUN mkdir -p /root/.ssh && chmod 700 /root/.ssh
 
-# Expose API port
-EXPOSE 8000
+# Expose API port and MCP SSE port
+EXPOSE 8000 3000
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
