@@ -1,0 +1,89 @@
+version: '3.8'
+
+networks:
+  pyats-network:
+    driver: bridge
+
+services:
+  # Nginx Reverse Proxy with HTTPS
+  nginx:
+    image: nginx:alpine
+    container_name: pyats-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      # Mount your SSL certificates here
+      - ./ssl:/etc/nginx/ssl:ro
+      # Optional: Mount logs
+      - ./logs/nginx:/var/log/nginx
+    networks:
+      - pyats-network
+    depends_on:
+      - pyats-api
+      - pyats-mcp-sse
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # REST API Server
+  pyats-api:
+    image: pyats-unified:latest
+    container_name: pyats-api
+    restart: unless-stopped
+    command: python run.py
+    environment:
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+      - LOG_LEVEL=INFO
+      # Optional: Jumphost configuration
+      # - JUMPHOST_HOST=jumphost.example.com
+      # - JUMPHOST_PORT=22
+      # - JUMPHOST_USERNAME=jumpuser
+      # - JUMPHOST_KEY_PATH=/root/.ssh/jumphost_key
+    volumes:
+      # Optional: Mount SSH keys for jumphost
+      # - ~/.ssh/jumphost_key:/root/.ssh/jumphost_key:ro
+      - ./logs/api:/app/logs
+    networks:
+      - pyats-network
+    expose:
+      - "8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # MCP SSE Server
+  pyats-mcp-sse:
+    image: pyats-unified:latest
+    container_name: pyats-mcp-sse
+    restart: unless-stopped
+    command: python mcp_sse.py
+    environment:
+      - MCP_HOST=0.0.0.0
+      - MCP_PORT=3000
+      - LOG_LEVEL=INFO
+      # Optional: Jumphost configuration
+      # - JUMPHOST_HOST=jumphost.example.com
+      # - JUMPHOST_PORT=22
+      # - JUMPHOST_USERNAME=jumpuser
+      # - JUMPHOST_KEY_PATH=/root/.ssh/jumphost_key
+    volumes:
+      # Optional: Mount SSH keys for jumphost
+      # - ~/.ssh/jumphost_key:/root/.ssh/jumphost_key:ro
+      - ./logs/mcp:/app/logs
+    networks:
+      - pyats-network
+    expose:
+      - "3000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:3000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3

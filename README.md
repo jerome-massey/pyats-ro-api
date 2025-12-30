@@ -71,11 +71,23 @@ docker-compose up -d
 docker-compose -f docker-compose.mcp.yml up -d
 ```
 
+**Production with HTTPS (Nginx Reverse Proxy):**
+```bash
+# Setup SSL certificates and start with Nginx
+# See NGINX_DEPLOYMENT.md for complete instructions
+docker-compose -f docker-compose.nginx.yml up -d
+
+# Services available:
+# - REST API: https://api.yourdomain.com (or https://localhost)
+# - MCP SSE: https://mcp.yourdomain.com (or https://localhost:3000)
+```
+
 **Endpoints:**
 - REST API: http://localhost:8000
 - REST API Docs (Swagger UI): http://localhost:8000/docs
 - REST API Docs (ReDoc): http://localhost:8000/redoc
 - MCP SSE Server: http://localhost:3000 (if using docker-compose.mcp.yml)
+- HTTPS (with nginx): https://localhost (REST API), https://localhost:3000 (MCP SSE)
 
 **Docker Configuration:**
 
@@ -497,12 +509,38 @@ docker-compose -f docker-compose.mcp.yml up -d pyats-mcp-sse
 
 ## Production Recommendations
 
-1. **Use HTTPS**: Deploy behind a reverse proxy (nginx/Apache) with TLS
-2. **Authentication**: Add API authentication (OAuth2, JWT, API keys)
-3. **Rate Limiting**: Implement rate limiting to prevent abuse
-4. **Logging**: Configure centralized logging
-5. **Monitoring**: Add health checks and metrics
-6. **Secret Management**: Use a secret manager (Vault, AWS Secrets Manager, etc.)
+### HTTPS Deployment
+
+For production use, deploy with HTTPS using Nginx reverse proxy:
+
+**Quick Setup:**
+```bash
+# 1. Generate SSL certificates (self-signed for testing)
+mkdir -p ssl
+openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+  -keyout ssl/key.pem -out ssl/cert.pem -subj "/CN=localhost"
+
+# 2. Update nginx.conf with your domain names
+
+# 3. Start with Nginx
+docker build -t pyats-unified:latest .
+docker-compose -f docker-compose.nginx.yml up -d
+```
+
+**Full Documentation**: See [NGINX_DEPLOYMENT.md](NGINX_DEPLOYMENT.md) for:
+- Let's Encrypt setup
+- Production SSL configuration
+- Rate limiting
+- Security hardening
+- Auto-renewal setup
+
+### Other Production Best Practices
+
+1. **Authentication**: Add API authentication (OAuth2, JWT, API keys)
+2. **Rate Limiting**: Implement rate limiting to prevent abuse (included in nginx config)
+3. **Logging**: Configure centralized logging
+4. **Monitoring**: Add health checks and metrics
+5. **Secret Management**: Use a secret manager (Vault, AWS Secrets Manager, etc.)
 
 ## Limitations
 
