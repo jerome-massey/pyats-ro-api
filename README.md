@@ -627,7 +627,62 @@ pyats-api/
 ├── Dockerfile.dev           # Development container
 ├── docker-compose.yml       # Production compose
 ├── docker-compose.dev.yml   # Development compose
+├── docker-compose.mcp.yml   # MCP multi-service compose
 ├── Makefile                 # Make commands
+├── requirements.txt         # Python dependencies
+├── requirements-dev.txt     # Dev/test dependencies
+├── pytest.ini               # Pytest configuration
+├── tests/                   # Unit tests
+│   ├── test_models.py       # Model validation tests (34 tests)
+│   └── README.md            # Test documentation
+└── README.md                # This file
+
+## Testing
+
+### Run Unit Tests
+
+The project includes comprehensive unit tests for all Pydantic models and validation logic.
+
+**Using Docker (Recommended):**
+```bash
+# Run all tests (34 tests)
+docker run --rm -v $(pwd):/app -w /app python:3.11-slim bash -c \
+  "pip install -q pytest pydantic && python -m pytest tests/ -v"
+
+# Run with coverage
+docker run --rm -v $(pwd):/app -w /app python:3.11-slim bash -c \
+  "pip install -q pytest pydantic pytest-cov && python -m pytest tests/ --cov=app --cov-report=term"
+```
+
+**Local Python:**
+```bash
+pip install -r requirements-dev.txt
+pytest tests/ -v
+```
+
+### Test Coverage
+
+✅ **34 tests covering:**
+- DeviceOS enum validation
+- JumphostConfig validation (host, port, username, key_path)
+- DeviceCredentials validation (including JunOS rejection)
+- ShowCommand validation (command injection prevention, pipe options)
+- ShowCommandRequest validation (multiple devices, timeout)
+- All security features (dangerous character blocking, length limits)
+
+See [tests/README.md](tests/README.md) for detailed test documentation.
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+Copyright (c) 2025 Jerome Massey
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## Support
 ├── requirements.txt         # Python dependencies
 ├── .env.example            # Example environment config
 ├── .dockerignore           # Docker ignore rules

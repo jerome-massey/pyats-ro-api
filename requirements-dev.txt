@@ -1,0 +1,20 @@
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+pydantic>=2.7.2
+pydantic-settings>=2.6.1
+pyats==24.11
+genie==24.11
+unicon==24.11
+paramiko==3.4.0
+python-dotenv==1.0.0
+
+# MCP (Model Context Protocol) dependencies
+mcp>=1.0.0
+httpx>=0.25.0
+sse-starlette>=1.8.2
+
+# Testing dependencies
+pytest==7.4.3
+pytest-asyncio==0.21.1
+pytest-cov==4.1.0
+httpx==0.25.2
