@@ -1,0 +1,242 @@
+{
+  "example_1_basic": {
+    "description": "Basic show command on single device (direct connection)",
+    "request": {
+      "devices": [
+        {
+          "hostname": "192.168.1.1",
+          "port": 22,
+          "username": "admin",
+          "password": "cisco123",
+          "os": "iosxe"
+        }
+      ],
+      "commands": [
+        {
+          "command": "show version"
+        }
+      ],
+      "use_jumphost": false,
+      "timeout": 30
+    }
+  },
+  "example_2_multiple_commands": {
+    "description": "Multiple commands on single device",
+    "request": {
+      "devices": [
+        {
+          "hostname": "192.168.1.1",
+          "username": "admin",
+          "password": "cisco123",
+          "os": "iosxe"
+        }
+      ],
+      "commands": [
+        {
+          "command": "show version"
+        },
+        {
+          "command": "show ip interface brief"
+        },
+        {
+          "command": "show inventory"
+        }
+      ],
+      "use_jumphost": false
+    }
+  },
+  "example_3_pipe_include": {
+    "description": "Using pipe include filter",
+    "request": {
+      "devices": [
+        {
+          "hostname": "192.168.1.1",
+          "username": "admin",
+          "password": "cisco123",
+          "os": "iosxe"
+        }
+      ],
+      "commands": [
+        {
+          "command": "show running-config",
+          "pipe_option": "include",
+          "pipe_value": "interface"
+        }
+      ],
+      "use_jumphost": false
+    }
+  },
+  "example_4_pipe_exclude": {
+    "description": "Using pipe exclude filter",
+    "request": {
+      "devices": [
+        {
+          "hostname": "192.168.1.1",
+          "username": "admin",
+          "password": "cisco123",
+          "os": "iosxe"
+        }
+      ],
+      "commands": [
+        {
+          "command": "show ip route",
+          "pipe_option": "exclude",
+          "pipe_value": "local"
+        }
+      ],
+      "use_jumphost": false
+    }
+  },
+  "example_5_pipe_begin": {
+    "description": "Using pipe begin filter",
+    "request": {
+      "devices": [
+        {
+          "hostname": "192.168.1.1",
+          "username": "admin",
+          "password": "cisco123",
+          "os": "iosxe"
+        }
+      ],
+      "commands": [
+        {
+          "command": "show version",
+          "pipe_option": "begin",
+          "pipe_value": "Cisco IOS"
+        }
+      ],
+      "use_jumphost": false
+    }
+  },
+  "example_6_pipe_section": {
+    "description": "Using pipe section filter",
+    "request": {
+      "devices": [
+        {
+          "hostname": "192.168.1.1",
+          "username": "admin",
+          "password": "cisco123",
+          "os": "iosxe"
+        }
+      ],
+      "commands": [
+        {
+          "command": "show running-config",
+          "pipe_option": "section",
+          "pipe_value": "router bgp"
+        }
+      ],
+      "use_jumphost": false
+    }
+  },
+  "example_7_multiple_devices": {
+    "description": "Execute commands on multiple devices",
+    "request": {
+      "devices": [
+        {
+          "hostname": "192.168.1.1",
+          "username": "admin",
+          "password": "cisco123",
+          "os": "iosxe"
+        },
+        {
+          "hostname": "192.168.1.2",
+          "username": "admin",
+          "password": "cisco123",
+          "os": "nxos"
+        },
+        {
+          "hostname": "192.168.1.3",
+          "username": "admin",
+          "password": "juniper123",
+          "os": "junos"
+        }
+      ],
+      "commands": [
+        {
+          "command": "show version"
+        }
+      ],
+      "use_jumphost": false
+    }
+  },
+  "example_8_with_jumphost": {
+    "description": "Connect through SSH jumphost",
+    "request": {
+      "devices": [
+        {
+          "hostname": "10.10.10.1",
+          "username": "admin",
+          "password": "cisco123",
+          "os": "iosxe"
+        }
+      ],
+      "commands": [
+        {
+          "command": "show version"
+        },
+        {
+          "command": "show ip interface brief"
+        }
+      ],
+      "use_jumphost": true,
+      "timeout": 60
+    }
+  },
+  "example_9_nxos_with_enable": {
+    "description": "NX-OS device with enable password",
+    "request": {
+      "devices": [
+        {
+          "hostname": "192.168.1.10",
+          "username": "admin",
+          "password": "cisco123",
+          "os": "nxos",
+          "enable_password": "enable123"
+        }
+      ],
+      "commands": [
+        {
+          "command": "show version"
+        }
+      ],
+      "use_jumphost": false
+    }
+  },
+  "example_10_complex": {
+    "description": "Complex example: Multiple devices, multiple commands, various pipe options",
+    "request": {
+      "devices": [
+        {
+          "hostname": "192.168.1.1",
+          "username": "admin",
+          "password": "cisco123",
+          "os": "iosxe"
+        },
+        {
+          "hostname": "192.168.1.2",
+          "username": "admin",
+          "password": "cisco123",
+          "os": "nxos"
+        }
+      ],
+      "commands": [
+        {
+          "command": "show version"
+        },
+        {
+          "command": "show running-config",
+          "pipe_option": "section",
+          "pipe_value": "interface"
+        },
+        {
+          "command": "show ip route",
+          "pipe_option": "include",
+          "pipe_value": "0.0.0.0"
+        }
+      ],
+      "use_jumphost": false,
+      "timeout": 45
+    }
+  }
+}
