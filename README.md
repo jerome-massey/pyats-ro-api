@@ -50,12 +50,24 @@ docker-compose -f docker-compose.mcp.yml up -d
 # - MCP SSE: http://localhost:3000
 ```
 
+**Start Individual Services:**
+```bash
+# REST API only (port 8000)
+docker-compose -f docker-compose.mcp.yml up -d pyats-api
+
+# MCP SSE only (port 3000)
+docker-compose -f docker-compose.mcp.yml up -d pyats-mcp-sse
+
+# Both services
+docker-compose -f docker-compose.mcp.yml up -d
+```
+
 **Production:**
 ```bash
-# REST API only
+# REST API only (simple deployment)
 docker-compose up -d
 
-# Or REST API + MCP servers
+# Or use multi-service deployment
 docker-compose -f docker-compose.mcp.yml up -d
 ```
 
