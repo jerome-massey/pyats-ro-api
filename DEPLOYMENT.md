@@ -479,7 +479,6 @@ ssh -i ~/.ssh/jumphost_key -p 22 user@jumphost.example.com "echo success"
 - Cisco IOS-XR (iosxr)
 - Cisco NX-OS (nxos)
 - Cisco ASA (asa)
-- Juniper JunOS (junos)
 
 ### Supported Commands
 

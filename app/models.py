@@ -13,7 +13,6 @@ class DeviceOS(str, Enum):
     IOSXR = "iosxr"
     NXOS = "nxos"
     ASA = "asa"
-    JUNOS = "junos"
 
 
 class PipeOption(str, Enum):
@@ -112,6 +111,18 @@ class DeviceCredentials(BaseModel):
             raise ValueError("Password cannot be empty")
         if len(v) > 1024:
             raise ValueError("Password exceeds maximum length")
+        return v
+    
+    @field_validator('os', mode='before')
+    @classmethod
+    def validate_os(cls, v):
+        """Validate OS and provide helpful error for unsupported types."""
+        if isinstance(v, str) and v.lower() == 'junos':
+            raise ValueError(
+                "JunOS is not supported. This API only supports Cisco devices (ios, iosxe, iosxr, nxos, asa). "
+                "JunOS uses different command syntax (e.g., 'match' instead of 'include') which is incompatible "
+                "with the current pipe options implementation."
+            )
         return v
 
 

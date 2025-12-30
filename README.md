@@ -10,7 +10,7 @@ A FastAPI-based REST API for executing show commands on network devices using Py
 - ✅ Pipe options support: `include`, `exclude`, `begin`, `section`
 - ✅ Optional SSH jumphost support with key-based authentication
 - ✅ Password authentication to target devices
-- ✅ Support for multiple network OS types (IOS, IOS-XE, IOS-XR, NX-OS, ASA, JunOS)
+- ✅ Support for multiple network OS types (IOS, IOS-XE, IOS-XR, NX-OS, ASA)
 - ✅ Show commands only (security restriction)
 
 ## Installation
@@ -340,7 +340,7 @@ Once the server is running, access the interactive API documentation:
       "port": "integer (default: 22)",
       "username": "string",
       "password": "string",
-      "os": "enum: ios|iosxe|iosxr|nxos|asa|junos",
+      "os": "enum: ios|iosxe|iosxr|nxos|asa",
       "enable_password": "string (optional)"
     }
   ],
@@ -390,7 +390,6 @@ Once the server is running, access the interactive API documentation:
 - `iosxr` - Cisco IOS-XR
 - `nxos` - Cisco NX-OS
 - `asa` - Cisco ASA
-- `junos` - Juniper JunOS
 
 ## Security Considerations
 

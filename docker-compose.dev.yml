@@ -23,6 +23,7 @@ services:
       # Mount application code for hot-reload
       - ./app:/app/app
       - ./run.py:/app/run.py
+      - ./test_validation.py:/app/test_validation.py
       
       # Mount SSH keys if using jumphost
       # Uncomment and adjust path to your SSH private key
