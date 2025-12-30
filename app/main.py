@@ -4,13 +4,15 @@ import logging
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
-from typing import List
+from typing import List, Dict
 
 from app.models import (
     ShowCommandRequest,
     ShowCommandResponse,
     DeviceResult,
-    CommandResult
+    CommandResult,
+    JumphostTestRequest,
+    JumphostTestResult
 )
 from app.device_manager import DeviceManager
 from app.jumphost import JumphostManager
@@ -50,7 +52,8 @@ async def root():
         "description": "Execute show commands on network devices",
         "endpoints": {
             "health": "/health",
-            "execute": "/api/v1/execute (POST)"
+            "execute": "/api/v1/execute (POST)",
+            "test-jumphost": "/api/v1/jumphost/test (POST)"
         }
     }
 
@@ -59,6 +62,80 @@ async def root():
 async def health_check():
     """Health check endpoint."""
     return {"status": "healthy"}
+
+
+@app.post("/api/v1/jumphost/test", response_model=JumphostTestResult)
+async def test_jumphost(request: JumphostTestRequest):
+    """Test SSH jumphost connectivity.
+    
+    Validates that a jumphost configuration is correct and accessible
+    without connecting to target devices.
+    
+    Args:
+        request: JumphostTestRequest containing jumphost configuration
+        
+    Returns:
+        JumphostTestResult with connection test results
+    """
+    jumphost_config = request.jumphost
+    logger.info(f"Testing jumphost connection to {jumphost_config.host}:{jumphost_config.port}")
+    
+    jumphost_manager = None
+    
+    try:
+        # Create jumphost manager with provided config
+        jumphost_manager = JumphostManager(
+            jumphost_host=jumphost_config.host,
+            jumphost_port=jumphost_config.port,
+            jumphost_username=jumphost_config.username,
+            jumphost_key_path=jumphost_config.key_path
+        )
+        
+        # Attempt connection
+        jumphost_manager.connect()
+        
+        logger.info(f"Successfully connected to jumphost {jumphost_config.host}")
+        
+        return JumphostTestResult(
+            host=jumphost_config.host,
+            port=jumphost_config.port,
+            username=jumphost_config.username,
+            success=True,
+            message=f"Successfully connected to jumphost {jumphost_config.host}:{jumphost_config.port} as user '{jumphost_config.username}'"
+        )
+    
+    except FileNotFoundError as e:
+        error_msg = f"SSH key not found: {jumphost_config.key_path}"
+        logger.error(error_msg)
+        return JumphostTestResult(
+            host=jumphost_config.host,
+            port=jumphost_config.port,
+            username=jumphost_config.username,
+            success=False,
+            message="Jumphost connection failed: SSH key not found",
+            error=error_msg
+        )
+    
+    except Exception as e:
+        error_msg = str(e)
+        logger.error(f"Jumphost connection test failed: {error_msg}")
+        
+        return JumphostTestResult(
+            host=jumphost_config.host,
+            port=jumphost_config.port,
+            username=jumphost_config.username,
+            success=False,
+            message="Jumphost connection failed",
+            error=error_msg
+        )
+    
+    finally:
+        # Cleanup connection
+        if jumphost_manager:
+            try:
+                jumphost_manager.disconnect()
+            except Exception as e:
+                logger.warning(f"Error disconnecting from jumphost during cleanup: {e}")
 
 
 @app.post("/api/v1/execute", response_model=ShowCommandResponse)
@@ -77,18 +154,17 @@ async def execute_commands(request: ShowCommandRequest):
     logger.info(f"Received request to execute commands on {len(request.devices)} device(s)")
     
     # Validate that only show commands are being executed
+    # Note: Pydantic validation already occurs via field_validator in ShowCommand
     for cmd in request.commands:
-        if not cmd.command.strip().lower().startswith("show"):
-            raise HTTPException(
-                status_code=400,
-                detail=f"Only 'show' commands are allowed. Got: {cmd.command}"
-            )
+        full_command = cmd.get_full_command()
+        logger.info(f"Validated command: {full_command}")
     
     results: List[DeviceResult] = []
-    jumphost_manager = None
+    global_jumphost_manager = None
+    device_jumphost_managers: Dict[str, JumphostManager] = {}
     
     try:
-        # Initialize jumphost if requested
+        # Initialize global jumphost if requested (fallback for devices without per-device config)
         if request.use_jumphost:
             if not all([
                 settings.jumphost_host,
@@ -97,21 +173,48 @@ async def execute_commands(request: ShowCommandRequest):
             ]):
                 raise HTTPException(
                     status_code=400,
-                    detail="Jumphost requested but configuration is incomplete. "
-                           "Check JUMPHOST_HOST, JUMPHOST_USERNAME, and JUMPHOST_KEY_PATH."
+                    detail="Jumphost requested but global configuration is incomplete. "
+                           "Set JUMPHOST_HOST, JUMPHOST_USERNAME, and JUMPHOST_KEY_PATH environment variables, "
+                           "or provide per-device jumphost configuration."
                 )
             
-            logger.info("Initializing jumphost connection")
-            jumphost_manager = JumphostManager(
+            logger.info("Initializing global jumphost connection")
+            global_jumphost_manager = JumphostManager(
                 jumphost_host=settings.jumphost_host,
                 jumphost_port=settings.jumphost_port,
                 jumphost_username=settings.jumphost_username,
                 jumphost_key_path=settings.jumphost_key_path
             )
-            jumphost_manager.connect()
+            global_jumphost_manager.connect()
         
         # Process each device
         for device_creds in request.devices:
+            # Determine which jumphost to use for this device
+            jumphost_manager = None
+            
+            # Priority 1: Per-device jumphost config
+            if device_creds.jumphost:
+                logger.info(f"Using per-device jumphost config for {device_creds.hostname}")
+                device_key = f"{device_creds.jumphost.host}:{device_creds.jumphost.port}:{device_creds.jumphost.username}"
+                
+                # Create device-specific jumphost if not already created
+                if device_key not in device_jumphost_managers:
+                    device_jumphost_managers[device_key] = JumphostManager(
+                        jumphost_host=device_creds.jumphost.host,
+                        jumphost_port=device_creds.jumphost.port,
+                        jumphost_username=device_creds.jumphost.username,
+                        jumphost_key_path=device_creds.jumphost.key_path
+                    )
+                    device_jumphost_managers[device_key].connect()
+                
+                jumphost_manager = device_jumphost_managers[device_key]
+            
+            # Priority 2: Global jumphost config
+            elif request.use_jumphost:
+                logger.info(f"Using global jumphost for {device_creds.hostname}")
+                jumphost_manager = global_jumphost_manager
+            
+            # Process device
             device_result = await process_device(
                 device_creds,
                 request.commands,
@@ -121,12 +224,18 @@ async def execute_commands(request: ShowCommandRequest):
             results.append(device_result)
     
     finally:
-        # Cleanup jumphost connection
-        if jumphost_manager:
+        # Cleanup all jumphost connections
+        if global_jumphost_manager:
+            try:
+                global_jumphost_manager.disconnect()
+            except Exception as e:
+                logger.warning(f"Error disconnecting global jumphost: {e}")
+        
+        for device_key, jumphost_manager in device_jumphost_managers.items():
             try:
                 jumphost_manager.disconnect()
             except Exception as e:
-                logger.warning(f"Error disconnecting jumphost: {e}")
+                logger.warning(f"Error disconnecting device jumphost ({device_key}): {e}")
     
     # Calculate summary statistics
     successful_devices = sum(1 for r in results if r.success)

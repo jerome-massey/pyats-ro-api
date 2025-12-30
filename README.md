@@ -149,8 +149,53 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```bash
 curl http://localhost:8000/health
 ```
+### Test Jumphost Configuration
+Test SSH jumphost connectivity before executing commands:
 
-#### Execute Commands
+```bash
+curl -X POST http://localhost:8000/api/v1/jumphost/test \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jumphost": {
+      "host": "jumphost.example.com",
+      "port": 22,
+      "username": "jumpuser",
+      "key_path": "/root/.ssh/jumphost_key"
+    }
+  }'
+```
+
+**Response (Success):**
+```json
+{
+  "host": "jumphost.example.com",
+  "port": 22,
+  "username": "jumpuser",
+  "success": true,
+  "message": "Successfully connected to jumphost jumphost.example.com:22 as user 'jumpuser'",
+  "error": null
+}
+```
+
+**Response (Failure):**
+```json
+{
+  "host": "jumphost.example.com",
+  "port": 22,
+  "username": "jumpuser",
+  "success": false,
+  "message": "Jumphost connection failed: SSH key not found",
+  "error": "SSH key not found: /root/.ssh/jumphost_key"
+}
+```
+
+**Use Cases:**
+- Verify SSH key file exists and is readable
+- Test network connectivity to jumphost
+- Validate jumphost credentials before bulk operations
+- Debug connectivity issues
+- CI/CD pipeline integration (fail fast if jumphost unavailable)
+### Execute Commands
 
 **Direct Connection (No Jumphost):**
 

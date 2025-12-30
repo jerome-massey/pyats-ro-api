@@ -1,8 +1,9 @@
 """Pydantic models for API requests and responses."""
 
-from pydantic import BaseModel, Field
-from typing import Optional, List, Literal
+from pydantic import BaseModel, Field, field_validator
+from typing import Optional, List, Literal, ClassVar, Pattern
 from enum import Enum
+import re
 
 
 class DeviceOS(str, Enum):
@@ -23,6 +24,45 @@ class PipeOption(str, Enum):
     SECTION = "section"
 
 
+class JumphostConfig(BaseModel):
+    """SSH Jumphost configuration (optional per-device)."""
+    host: str = Field(..., description="Jumphost hostname or IP address")
+    port: int = Field(default=22, description="Jumphost SSH port")
+    username: str = Field(..., description="Jumphost SSH username")
+    key_path: str = Field(..., description="Path to SSH private key for jumphost")
+    
+    @field_validator('host')
+    @classmethod
+    def validate_host(cls, v):
+        """Validate hostname/IP format."""
+        if not v or not isinstance(v, str) or len(v) == 0:
+            raise ValueError("Jumphost host cannot be empty")
+        if len(v) > 255:
+            raise ValueError("Jumphost host exceeds maximum length")
+        # Basic validation - allow alphanumeric, dots, hyphens
+        if not re.match(r'^[a-zA-Z0-9][a-zA-Z0-9\.\-]*[a-zA-Z0-9]$', v) and not re.match(r'^[a-zA-Z0-9]$', v):
+            raise ValueError("Invalid jumphost hostname/IP format")
+        return v
+    
+    @field_validator('port')
+    @classmethod
+    def validate_port(cls, v):
+        """Validate port range."""
+        if not (1 <= v <= 65535):
+            raise ValueError("Port must be between 1 and 65535")
+        return v
+    
+    @field_validator('username')
+    @classmethod
+    def validate_username(cls, v):
+        """Validate username format."""
+        if not v or len(v) == 0:
+            raise ValueError("Username cannot be empty")
+        if len(v) > 255:
+            raise ValueError("Username exceeds maximum length")
+        return v
+
+
 class DeviceCredentials(BaseModel):
     """Device credentials."""
     hostname: str = Field(..., description="Device hostname or IP address")
@@ -31,6 +71,48 @@ class DeviceCredentials(BaseModel):
     password: str = Field(..., description="Device password")
     os: DeviceOS = Field(..., description="Device operating system")
     enable_password: Optional[str] = Field(None, description="Enable password if required")
+    jumphost: Optional[JumphostConfig] = Field(None, description="Optional per-device SSH jumphost configuration")
+    
+    @field_validator('hostname')
+    @classmethod
+    def validate_hostname(cls, v):
+        """Validate hostname/IP format."""
+        if not v or not isinstance(v, str) or len(v) == 0:
+            raise ValueError("Hostname cannot be empty")
+        if len(v) > 255:
+            raise ValueError("Hostname exceeds maximum length")
+        # Allow alphanumeric, dots, hyphens, and IPv6 colons
+        if not re.match(r'^[a-zA-Z0-9\:][a-zA-Z0-9\.\:\-]*[a-zA-Z0-9]$', v) and not re.match(r'^[a-zA-Z0-9]$', v):
+            raise ValueError("Invalid hostname/IP format")
+        return v
+    
+    @field_validator('port')
+    @classmethod
+    def validate_port(cls, v):
+        """Validate port range."""
+        if not (1 <= v <= 65535):
+            raise ValueError("Port must be between 1 and 65535")
+        return v
+    
+    @field_validator('username')
+    @classmethod
+    def validate_username(cls, v):
+        """Validate username format."""
+        if not v or len(v) == 0:
+            raise ValueError("Username cannot be empty")
+        if len(v) > 255:
+            raise ValueError("Username exceeds maximum length")
+        return v
+    
+    @field_validator('password')
+    @classmethod
+    def validate_password(cls, v):
+        """Validate password."""
+        if not v or len(v) == 0:
+            raise ValueError("Password cannot be empty")
+        if len(v) > 1024:
+            raise ValueError("Password exceeds maximum length")
+        return v
 
 
 class ShowCommand(BaseModel):
@@ -39,8 +121,90 @@ class ShowCommand(BaseModel):
     pipe_option: Optional[PipeOption] = Field(None, description="Pipe option (include, exclude, begin, section)")
     pipe_value: Optional[str] = Field(None, description="Value for the pipe option")
     
+    # Regex patterns for command validation - declared as ClassVar to avoid treating as Pydantic fields
+    SHOW_COMMAND_PATTERN: ClassVar[Pattern] = re.compile(r'^show\s+[a-zA-Z0-9\s\-_\.]+$', re.IGNORECASE)
+    PIPE_VALUE_PATTERN: ClassVar[Pattern] = re.compile(r'^[a-zA-Z0-9\s\-_\.,\(\)]+$')
+    DANGEROUS_PATTERNS: ClassVar[List[str]] = [
+        r';',           # Command separator
+        r'\n',          # Newline
+        r'\r',          # Carriage return
+        r'`',           # Backtick (command substitution)
+        r'\$',          # Dollar sign (variable expansion)
+        r'\|',          # Pipe (for commands other than show pipe options)
+        r'&&',          # AND operator
+        r'\|\|',        # OR operator
+        r'>',           # Redirection
+        r'<',           # Redirection
+        r'&',           # Background
+        r'!',           # History expansion
+    ]
+    
+    @field_validator('command')
+    @classmethod
+    def validate_command(cls, v):
+        """Validate show command format and content."""
+        if not v or not isinstance(v, str):
+            raise ValueError("Command cannot be empty")
+        
+        # Strip whitespace
+        v = v.strip()
+        
+        if len(v) == 0:
+            raise ValueError("Command cannot be empty")
+        
+        if len(v) > 1000:
+            raise ValueError("Command exceeds maximum length of 1000 characters")
+        
+        # Check if command starts with 'show'
+        if not v.lower().startswith('show'):
+            raise ValueError("Only 'show' commands are allowed")
+        
+        # Check for dangerous patterns (basic shell injection prevention)
+        for pattern in cls.DANGEROUS_PATTERNS:
+            if re.search(pattern, v):
+                raise ValueError(f"Command contains disallowed character(s): '{pattern}'")
+        
+        # Check basic show command format
+        if not cls.SHOW_COMMAND_PATTERN.match(v):
+            raise ValueError(
+                "Command must be 'show' followed by valid parameters. "
+                "Only alphanumeric characters, spaces, hyphens, underscores, and dots are allowed."
+            )
+        
+        return v
+    
+    @field_validator('pipe_value')
+    @classmethod
+    def validate_pipe_value(cls, v, info):
+        """Validate pipe filter value."""
+        # If pipe_value is provided, pipe_option must also be provided
+        if v is not None:
+            if not isinstance(v, str) or len(v) == 0:
+                raise ValueError("Pipe value cannot be empty")
+            
+            if len(v) > 500:
+                raise ValueError("Pipe value exceeds maximum length of 500 characters")
+            
+            # Check for dangerous patterns in pipe value
+            for pattern in cls.DANGEROUS_PATTERNS:
+                if re.search(pattern, v):
+                    raise ValueError(f"Pipe value contains disallowed character(s)")
+            
+            # Validate pipe value format
+            if not cls.PIPE_VALUE_PATTERN.match(v):
+                raise ValueError(
+                    "Pipe value contains invalid characters. "
+                    "Only alphanumeric, spaces, hyphens, underscores, dots, commas, and parentheses are allowed."
+                )
+        
+        return v
+    
     def get_full_command(self) -> str:
-        """Build the full command with pipe options."""
+        """Build the full command with pipe options.
+        
+        Returns:
+            Full command string with pipe options if specified
+        """
         if self.pipe_option and self.pipe_value:
             return f"{self.command} | {self.pipe_option.value} {self.pipe_value}"
         return self.command
@@ -76,3 +240,18 @@ class ShowCommandResponse(BaseModel):
     total_devices: int
     successful_devices: int
     failed_devices: int
+
+
+class JumphostTestRequest(BaseModel):
+    """Request to test jumphost connectivity."""
+    jumphost: JumphostConfig = Field(..., description="Jumphost configuration to test")
+
+
+class JumphostTestResult(BaseModel):
+    """Result of jumphost connectivity test."""
+    host: str = Field(..., description="Jumphost hostname")
+    port: int = Field(..., description="Jumphost port")
+    username: str = Field(..., description="Jumphost username")
+    success: bool = Field(..., description="Whether jumphost connection succeeded")
+    message: str = Field(..., description="Test result message")
+    error: Optional[str] = Field(None, description="Error details if test failed")
