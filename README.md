@@ -1,23 +1,37 @@
 # PyATS Show Command API
 
-A FastAPI-based REST API for executing show commands on network devices using PyATS/Unicon with optional SSH jumphost support.
+A FastAPI-based REST API and MCP (Model Context Protocol) server for executing show commands on Cisco network devices using PyATS/Unicon with optional SSH jumphost support.
 
 ## Features
 
-- ✅ Execute show commands on network devices via PyATS/Unicon
+### Core Functionality
+- ✅ Execute show commands on Cisco network devices via PyATS/Unicon
 - ✅ Support for multiple devices in a single API call
 - ✅ No testbed file required - pass device credentials directly
 - ✅ Pipe options support: `include`, `exclude`, `begin`, `section`
 - ✅ Optional SSH jumphost support with key-based authentication
 - ✅ Password authentication to target devices
-- ✅ Support for multiple network OS types (IOS, IOS-XE, IOS-XR, NX-OS, ASA)
-- ✅ Show commands only (security restriction)
+- ✅ Support for Cisco network OS types (IOS, IOS-XE, IOS-XR, NX-OS, ASA)
+- ✅ Show commands only (security restriction - read-only access)
+
+### Access Methods
+- ✅ **REST API** - HTTP/JSON interface on port 8000
+- ✅ **MCP SSE** - Remote Model Context Protocol via Server-Sent Events on port 3000
+- ✅ **MCP stdio** - Local MCP for AI assistants (Claude Desktop integration)
+
+### Security Features
+- ✅ Command validation - only `show` commands allowed
+- ✅ Input sanitization - blocks 12+ dangerous patterns (`;`, `|`, `&&`, etc.)
+- ✅ OS-specific validation - JunOS explicitly rejected with helpful error
+- ✅ SSH key-based jumphost authentication
+- ✅ No credential storage - ephemeral per-request
+- ✅ Container isolation via Docker
 
 ## Installation
 
 ### Option 1: Docker (Recommended)
 
-**Quick Start:**
+**Quick Start - REST API Only:**
 ```bash
 # Development with hot-reload
 make dev
@@ -26,24 +40,34 @@ make dev
 docker-compose -f docker-compose.dev.yml up
 ```
 
-**Production:**
+**Quick Start - All Services (REST API + MCP):**
 ```bash
-# Build and run
-make build
-make run
+# Build and run all services
+docker-compose -f docker-compose.mcp.yml up -d
 
-# Or using docker-compose directly
-docker-compose up -d
+# Services available:
+# - REST API: http://localhost:8000
+# - MCP SSE: http://localhost:3000
 ```
 
-The API will be available at:
-- http://localhost:8000
-- http://localhost:8000/docs (Swagger UI)
-- http://localhost:8000/redoc (ReDoc)
+**Production:**
+```bash
+# REST API only
+docker-compose up -d
+
+# Or REST API + MCP servers
+docker-compose -f docker-compose.mcp.yml up -d
+```
+
+**Endpoints:**
+- REST API: http://localhost:8000
+- REST API Docs (Swagger UI): http://localhost:8000/docs
+- REST API Docs (ReDoc): http://localhost:8000/redoc
+- MCP SSE Server: http://localhost:3000 (if using docker-compose.mcp.yml)
 
 **Docker Configuration:**
 
-For jumphost support, edit `docker-compose.yml` or `docker-compose.dev.yml`:
+For jumphost support, edit `docker-compose.yml` or `docker-compose.mcp.yml`:
 
 ```yaml
 environment:
@@ -391,13 +415,73 @@ Once the server is running, access the interactive API documentation:
 - `nxos` - Cisco NX-OS
 - `asa` - Cisco ASA
 
+**Note:** JunOS is **not supported** due to incompatible command syntax (uses `match` instead of `include`). Attempts to use JunOS will return a validation error with explanation.
+
 ## Security Considerations
 
+### Built-In Security
 1. **Show Commands Only**: The API enforces that only commands starting with "show" can be executed
-2. **No Testbed Files**: All credentials are passed via API (consider using HTTPS in production)
-3. **SSH Key Authentication**: Jumphost uses SSH key authentication (more secure than passwords)
-4. **Password to Device**: Target devices use password authentication
-5. **Environment Variables**: Sensitive jumphost credentials should be in `.env` (not committed to git)
+2. **Input Validation**: Blocks dangerous patterns:
+   - Command separators: `;`, `&&`, `||`
+   - Redirects: `>`, `<`
+   - Shell expansion: `$`, `` ` ``, `!`
+   - Newlines, pipes, background operators
+3. **OS Validation**: Rejects unsupported OS types (e.g., JunOS) with helpful error messages
+4. **Length Limits**: Commands max 1000 chars, pipe values max 500 chars
+5. **SSH Key Authentication**: Jumphost uses SSH key authentication (more secure than passwords)
+6. **No Credential Storage**: Credentials passed per-request, not stored
+7. **Container Isolation**: Runs in isolated Docker containers
+8. **Environment Protection**: `.env` files excluded from git via `.gitignore`
+
+### What You Should Add
+1. **HTTPS/TLS**: Deploy behind reverse proxy with certificates
+2. **API Authentication**: Add OAuth2, JWT, or API key validation
+3. **Rate Limiting**: Prevent abuse with request throttling
+4. **Network Segmentation**: Restrict container network access
+5. **Secret Management**: Use Vault or similar for sensitive data
+6. **Audit Logging**: Log all command executions for compliance
+
+## MCP (Model Context Protocol) Support
+
+This API also functions as an MCP server, allowing AI assistants like Claude to directly execute network commands.
+
+### MCP Features
+- **4 Tools Available**:
+  - `execute_show_commands` - Run show commands on devices
+  - `test_jumphost` - Test jumphost connectivity
+  - `list_supported_os` - List supported operating systems
+  - `list_pipe_options` - List available pipe filters
+- **Dual Transport**: stdio (local) and SSE (remote)
+- **Same Security**: All validation rules apply to MCP tools
+
+### Quick Start - MCP
+
+**For Claude Desktop (stdio):**
+Add to `~/.config/Claude/claude_desktop_config.json`:
+```json
+{
+  "mcpServers": {
+    "pyats": {
+      "command": "docker",
+      "args": [
+        "run", "-i", "--rm",
+        "pyats-unified:latest",
+        "python", "mcp_stdio.py"
+      ]
+    }
+  }
+}
+```
+
+**For Remote Access (SSE):**
+```bash
+# Start MCP SSE server
+docker-compose -f docker-compose.mcp.yml up -d pyats-mcp-sse
+
+# Available at: http://localhost:3000/sse
+```
+
+**Full Documentation**: See [MCP_README.md](MCP_README.md) for complete MCP setup and usage.
 
 ## Production Recommendations
 
@@ -407,6 +491,27 @@ Once the server is running, access the interactive API documentation:
 4. **Logging**: Configure centralized logging
 5. **Monitoring**: Add health checks and metrics
 6. **Secret Management**: Use a secret manager (Vault, AWS Secrets Manager, etc.)
+
+## Limitations
+
+### Current Limitations
+- **Cisco Only**: Supports ios, iosxe, iosxr, nxos, asa (JunOS explicitly unsupported)
+- **Show Commands Only**: Cannot make configuration changes (by design)
+- **No Connection Pooling**: New connection per request
+- **Sequential Execution**: Commands execute one at a time per device
+- **No Caching**: Same command = new execution
+- **Password Auth to Devices**: SSH key auth only for jumphost
+- **30s Default Timeout**: Configurable but applies to all commands
+- **No Multi-Hop Jumphost**: Single jumphost only
+
+### Validation Rules
+- Commands must start with `show`
+- Max command length: 1000 characters
+- Max pipe value length: 500 characters
+- Hostname/IP max length: 255 characters
+- Username max length: 255 characters
+- Password max length: 1024 characters
+- Port range: 1-65535
 
 ## Troubleshooting
 

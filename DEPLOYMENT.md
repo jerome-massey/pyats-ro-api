@@ -107,7 +107,7 @@ The PyATS Show Command API is a FastAPI application that provides a REST interfa
 
 ## Deployment Options
 
-### Option 1: Docker Compose (Recommended for Quick Start)
+### Option 1: Docker Compose - REST API Only
 
 #### Prerequisites
 ```bash
@@ -129,11 +129,31 @@ cp .env.example .env
 nano .env
 # Set: JUMPHOST_HOST, JUMPHOST_USERNAME, JUMPHOST_KEY_PATH (if needed)
 
-# Start container
+# Start REST API (port 8000)
 docker-compose up -d
 
 # Verify
 curl http://localhost:8000/health
+```
+
+### Option 1b: Docker Compose - Full Stack (REST API + MCP)
+
+Deploy all three services simultaneously:
+
+```bash
+# Start all services
+docker-compose -f docker-compose.mcp.yml up -d
+
+# Services running:
+# - pyats-api:      REST API on port 8000
+# - pyats-mcp-sse:  MCP Server (SSE) on port 3000
+# - pyats-mcp-stdio: Available for on-demand stdio connections
+
+# Verify REST API
+curl http://localhost:8000/health
+
+# Verify MCP SSE
+curl http://localhost:3000/health
 ```
 
 #### With Jumphost
@@ -480,6 +500,8 @@ ssh -i ~/.ssh/jumphost_key -p 22 user@jumphost.example.com "echo success"
 - Cisco NX-OS (nxos)
 - Cisco ASA (asa)
 
+**Note**: Juniper JunOS is explicitly **NOT supported**. JunOS uses different pipe syntax (`match` vs `include`) and would require separate implementation. If you attempt to use `os: "junos"`, the API will reject the request with a validation error explaining this limitation.
+
 ### Supported Commands
 
 Only commands starting with "show" are allowed.
@@ -554,9 +576,10 @@ Examples:
 ### ✅ Built-In Protections
 
 ```python
-# Command injection prevention
+# Command injection prevention (12+ patterns)
 ✓ Regex validation: Must start with "show"
-✓ Dangerous character blocking: ; \n \r ` $ | && || > < & !
+✓ Dangerous character blocking: ; \n \r ` $ && || > < & !
+✓ Config keywords blocked: configure, write, reload, delete, etc.
 ✓ Max length enforcement: 1000 chars
 ✓ Pipe value sanitization: Only safe chars allowed
 
@@ -564,6 +587,7 @@ Examples:
 ✓ Hostname format validation
 ✓ Port range validation (1-65535)
 ✓ Username/password non-empty checks
+✓ OS type validation (JunOS explicitly rejected)
 ✓ Pydantic validators on all inputs
 
 # Jumphost security
