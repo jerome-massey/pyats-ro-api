@@ -67,7 +67,6 @@ curl http://localhost:8000/
     "redoc": "/redoc",
     "health": "/health",
     "execute": "/api/v1/execute",
-    "jumphost_test": "/api/v1/jumphost/test",
     "supported_os": "/api/v1/supported_os",
     "pipe_options": "/api/v1/pipe_options"
   }
@@ -97,13 +96,7 @@ Content-Type: application/json
       "username": "string",
       "password": "string",
       "os": "ios|iosxe|iosxr|nxos|asa",
-      "enable_password": "string",
-      "jumphost": {
-        "host": "string",
-        "port": 22,
-        "username": "string",
-        "key_path": "string"
-      }
+      "enable_password": "string"
     }
   ],
   "commands": [
@@ -115,7 +108,6 @@ Content-Type: application/json
       }
     }
   ],
-  "use_jumphost": false,
   "timeout": 30
 }
 ```
@@ -131,13 +123,11 @@ Content-Type: application/json
 | `devices[].password` | string | Yes | Device SSH password |
 | `devices[].os` | string | Yes | Device OS type |
 | `devices[].enable_password` | string | No | Enable password if required |
-| `devices[].jumphost` | object | No | Per-device jumphost config |
 | `commands` | array | Yes | List of show commands |
 | `commands[].command` | string | Yes | Show command to execute |
 | `commands[].pipe` | object | No | Pipe filter options |
 | `commands[].pipe.option` | string | No | Filter type |
 | `commands[].pipe.pattern` | string | No | Filter pattern |
-| `use_jumphost` | boolean | No | Use global jumphost (default: false) |
 | `timeout` | integer | No | Command timeout in seconds (default: 30) |
 
 **Supported OS Types**:
@@ -230,64 +220,6 @@ curl -X POST http://localhost:8000/api/v1/execute \
 ```json
 {
   "detail": "Only 'show' commands are allowed. Command rejected: configure terminal"
-}
-```
-
----
-
-### Test Jumphost Connectivity
-
-Test SSH jumphost connection before executing commands.
-
-**Endpoint**: `POST /api/v1/jumphost/test`
-
-**Request Body**:
-```json
-{
-  "jumphost": {
-    "host": "string",
-    "port": 22,
-    "username": "string",
-    "key_path": "string"
-  }
-}
-```
-
-**Example Request**:
-```bash
-curl -X POST http://localhost:8000/api/v1/jumphost/test \
-  -H "Content-Type: application/json" \
-  -d '{
-    "jumphost": {
-      "host": "jumphost.example.com",
-      "port": 22,
-      "username": "jumpuser",
-      "key_path": "/root/.ssh/jumphost_key"
-    }
-  }'
-```
-
-**Response (Success)**: `200 OK`
-```json
-{
-  "host": "jumphost.example.com",
-  "port": 22,
-  "username": "jumpuser",
-  "success": true,
-  "message": "Successfully connected to jumphost jumphost.example.com:22 as user 'jumpuser'",
-  "error": null
-}
-```
-
-**Response (Failure)**: `200 OK`
-```json
-{
-  "host": "jumphost.example.com",
-  "port": 22,
-  "username": "jumpuser",
-  "success": false,
-  "message": "Jumphost connection failed: SSH key not found",
-  "error": "SSH key not found: /root/.ssh/jumphost_key"
 }
 ```
 
@@ -417,51 +349,6 @@ curl http://localhost:8000/api/v1/pipe_options
         "pattern": "interface"
       }
     }
-  ]
-}
-```
-
-### With Global Jumphost
-
-```json
-{
-  "devices": [
-    {
-      "hostname": "192.168.1.1",
-      "username": "admin",
-      "password": "cisco123",
-      "os": "iosxe"
-    }
-  ],
-  "commands": [
-    {"command": "show version"}
-  ],
-  "use_jumphost": true
-}
-```
-
-Note: Requires jumphost environment variables to be configured.
-
-### With Per-Device Jumphost
-
-```json
-{
-  "devices": [
-    {
-      "hostname": "192.168.1.1",
-      "username": "admin",
-      "password": "cisco123",
-      "os": "iosxe",
-      "jumphost": {
-        "host": "jumphost.example.com",
-        "port": 22,
-        "username": "jumpuser",
-        "key_path": "/root/.ssh/jumphost_key"
-      }
-    }
-  ],
-  "commands": [
-    {"command": "show version"}
   ]
 }
 ```

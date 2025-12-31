@@ -6,7 +6,6 @@ MCP (Model Context Protocol) server implementation for executing show commands o
 
 The PyATS MCP server exposes the same functionality as the REST API but through the MCP protocol, enabling AI assistants to:
 - Execute show commands on Cisco devices
-- Test jumphost connectivity
 - Query supported OS types and pipe options
 - All with the same security restrictions (show commands only)
 
@@ -27,7 +26,7 @@ The PyATS MCP server exposes the same functionality as the REST API but through 
         │    Business Logic         │
         │  (Shared - Unchanged)     │
         │  - DeviceManager          │
-        │  - JumphostManager        │
+
         │  - Models & Validation    │
         └───────────────────────────┘
 ```
@@ -46,7 +45,6 @@ Execute show commands on a Cisco network device.
 - `port` (optional): SSH port (default: 22)
 - `enable_password` (optional): Enable password
 - `timeout` (optional): Command timeout in seconds (default: 30)
-- `use_jumphost` (optional): Use global jumphost config (default: false)
 
 **Example:**
 ```json
@@ -59,21 +57,12 @@ Execute show commands on a Cisco network device.
 }
 ```
 
-### 2. `test_jumphost`
-Test SSH jumphost connectivity.
-
-**Parameters:**
-- `host` (required): Jumphost hostname or IP
-- `username` (required): Jumphost SSH username
-- `key_path` (required): Path to SSH private key
-- `port` (optional): Jumphost SSH port (default: 22)
-
-### 3. `list_supported_os`
+### 2. `list_supported_os`
 List all supported network device operating systems.
 
 No parameters required.
 
-### 4. `list_pipe_options`
+### 3. `list_pipe_options`
 List available pipe filter options for show commands.
 
 No parameters required.

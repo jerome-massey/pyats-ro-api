@@ -16,7 +16,7 @@
           "command": "show version"
         }
       ],
-            "timeout": 30
+      "timeout": 30
     }
   },
   "example_2_multiple_commands": {
@@ -41,7 +41,8 @@
           "command": "show inventory"
         }
       ],
-          }
+      "timeout": 30
+    }
   },
   "example_3_pipe_include": {
     "description": "Using pipe include filter",
@@ -61,7 +62,8 @@
           "pipe_value": "interface"
         }
       ],
-          }
+      "timeout": 30
+    }
   },
   "example_4_pipe_exclude": {
     "description": "Using pipe exclude filter",
@@ -81,7 +83,8 @@
           "pipe_value": "local"
         }
       ],
-          }
+      "timeout": 30
+    }
   },
   "example_5_pipe_begin": {
     "description": "Using pipe begin filter",
@@ -101,7 +104,8 @@
           "pipe_value": "Cisco IOS"
         }
       ],
-          }
+      "timeout": 30
+    }
   },
   "example_6_pipe_section": {
     "description": "Using pipe section filter",
@@ -121,7 +125,8 @@
           "pipe_value": "router bgp"
         }
       ],
-          }
+      "timeout": 30
+    }
   },
   "example_7_multiple_devices": {
     "description": "Execute commands on multiple devices",
@@ -145,39 +150,18 @@
           "command": "show version"
         }
       ],
-          }
-  },
-  "example_8_with_jumphost": {
-    "description": "Connect through SSH jumphost",
-    "request": {
-      "devices": [
-        {
-          "hostname": "10.10.10.1",
-          "username": "admin",
-          "password": "cisco123",
-          "os": "iosxe"
-        }
-      ],
-      "commands": [
-        {
-          "command": "show version"
-        },
-        {
-          "command": "show ip interface brief"
-        }
-      ],
-            "timeout": 60
+      "timeout": 30
     }
   },
-  "example_9_nxos_with_enable": {
-    "description": "NX-OS device with enable password",
+  "example_8_with_enable_password": {
+    "description": "Device with enable password",
     "request": {
       "devices": [
         {
           "hostname": "192.168.1.10",
           "username": "admin",
           "password": "cisco123",
-          "os": "nxos",
+          "os": "ios",
           "enable_password": "enable123"
         }
       ],
@@ -186,7 +170,27 @@
           "command": "show version"
         }
       ],
-          }
+      "timeout": 30
+    }
+  },
+  "example_9_custom_timeout": {
+    "description": "Command with custom timeout for long-running commands",
+    "request": {
+      "devices": [
+        {
+          "hostname": "192.168.1.1",
+          "username": "admin",
+          "password": "cisco123",
+          "os": "iosxe"
+        }
+      ],
+      "commands": [
+        {
+          "command": "show tech-support"
+        }
+      ],
+      "timeout": 120
+    }
   },
   "example_10_complex": {
     "description": "Complex example: Multiple devices, multiple commands, various pipe options",
@@ -220,7 +224,7 @@
           "pipe_value": "0.0.0.0"
         }
       ],
-            "timeout": 45
+      "timeout": 45
     }
   }
 }

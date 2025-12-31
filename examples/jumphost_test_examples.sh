@@ -1,7 +1,24 @@
 #!/bin/bash
 
-# PyATS Show Command API - Jumphost Testing Examples
-# These examples demonstrate the jumphost test endpoint
+# ============================================================================
+# DEPRECATED - This file is obsolete as of v0.2.2
+# ============================================================================
+#
+# The jumphost test endpoint and per-device jumphost configuration have been
+# removed in v0.2.2. Jumphost routing is now handled transparently via SSH
+# config files.
+#
+# To configure jumphost access in v0.2.2+:
+#   1. Configure SSH config file in the container at /root/.ssh/config
+#   2. Use ProxyJump directive for target device subnets
+#   3. See entrypoint.sh for example configuration
+#
+# For more information, see the main README.md
+#
+# ============================================================================
+
+# PyATS Show Command API - Jumphost Testing Examples (DEPRECATED)
+# These examples demonstrate the OLD jumphost test endpoint (REMOVED in v0.2.2)
 
 API_URL="http://localhost:8000"
 

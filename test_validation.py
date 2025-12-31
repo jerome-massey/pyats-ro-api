@@ -135,7 +135,6 @@ def test_request_model():
                     pipe_value="up"
                 )
             ],
-            use_jumphost=False,
             timeout=30
         )
         print("✅ PASSED: Full request model validated successfully")

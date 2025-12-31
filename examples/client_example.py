@@ -37,7 +37,6 @@ class PyATSAPIClient:
         self,
         devices: List[Dict[str, Any]],
         commands: List[Dict[str, Any]],
-        use_jumphost: bool = False,
         timeout: int = 30
     ) -> Dict[str, Any]:
         """Execute show commands on devices.
@@ -45,7 +44,6 @@ class PyATSAPIClient:
         Args:
             devices: List of device credentials
             commands: List of commands to execute
-            use_jumphost: Whether to use SSH jumphost
             timeout: Command timeout in seconds
             
         Returns:
@@ -54,7 +52,6 @@ class PyATSAPIClient:
         payload = {
             "devices": devices,
             "commands": commands,
-            "use_jumphost": use_jumphost,
             "timeout": timeout
         }
         
@@ -181,30 +178,28 @@ def example_multiple_devices():
         print(f"Commands executed: {len(device_result['commands'])}")
 
 
-def example_with_jumphost():
-    """Example: Connect through SSH jumphost."""
-    print("\n=== Example 4: With SSH Jumphost ===")
+def example_with_enable_password():
+    """Example: Show commands with enable password."""
+    print("\n=== Example 4: With Enable Password ===")
     
     client = PyATSAPIClient()
     
-    # Note: Requires jumphost configuration in .env
     result = client.execute_commands(
         devices=[
             {
-                "hostname": "10.10.10.1",
+                "hostname": "192.168.1.1",
                 "username": "admin",
                 "password": "cisco123",
-                "os": "iosxe"
+                "os": "ios",
+                "enable_password": "enable123"
             }
         ],
         commands=[
-            {"command": "show version"}
-        ],
-        use_jumphost=True,
-        timeout=60
+            {"command": "show running-config"}
+        ]
     )
     
-    print(f"\nJumphost connection successful!")
+    print(f"\nDevice processed with enable password!")
     print(f"Devices processed: {result['total_devices']}")
 
 
@@ -217,7 +212,7 @@ if __name__ == "__main__":
         example_basic()
         # example_with_pipes()
         # example_multiple_devices()
-        # example_with_jumphost()  # Requires jumphost setup
+        # example_with_enable_password()
         
     except requests.exceptions.ConnectionError:
         print("\n❌ Error: Could not connect to API server")

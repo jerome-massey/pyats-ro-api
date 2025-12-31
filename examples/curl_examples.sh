@@ -34,8 +34,7 @@ curl -X POST http://localhost:8000/api/v1/execute \
     ],
     "commands": [
       {"command": "show version"}
-    ],
-    "use_jumphost": false
+    ]
   }'
 EOF
 echo ""
@@ -60,8 +59,7 @@ curl -X POST http://localhost:8000/api/v1/execute \
       {"command": "show version"},
       {"command": "show ip interface brief"},
       {"command": "show inventory"}
-    ],
-    "use_jumphost": false
+    ]
   }'
 EOF
 echo ""
@@ -88,8 +86,7 @@ curl -X POST http://localhost:8000/api/v1/execute \
         "pipe_option": "include",
         "pipe_value": "interface"
       }
-    ],
-    "use_jumphost": false
+    ]
   }'
 EOF
 echo ""
@@ -118,33 +115,31 @@ curl -X POST http://localhost:8000/api/v1/execute \
     ],
     "commands": [
       {"command": "show version"}
-    ],
-    "use_jumphost": false
+    ]
   }'
 EOF
 echo ""
 echo ""
 
-# Example 6: With jumphost
-echo "6. With SSH Jumphost"
-echo "===================="
+# Example 6: With custom timeout
+echo "6. With Custom Timeout"
+echo "======================"
 cat << 'EOF'
 curl -X POST http://localhost:8000/api/v1/execute \
   -H "Content-Type: application/json" \
   -d '{
     "devices": [
       {
-        "hostname": "10.10.10.1",
+        "hostname": "192.168.1.1",
         "username": "admin",
         "password": "cisco123",
         "os": "iosxe"
       }
     ],
     "commands": [
-      {"command": "show version"}
+      {"command": "show tech-support"}
     ],
-    "use_jumphost": true,
-    "timeout": 60
+    "timeout": 120
   }'
 EOF
 echo ""

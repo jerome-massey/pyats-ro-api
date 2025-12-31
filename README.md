@@ -238,45 +238,6 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```bash
 curl http://localhost:8000/health
 ```
-### Test Jumphost Configuration
-Test SSH jumphost connectivity before executing commands:
-
-```bash
-curl -X POST http://localhost:8000/api/v1/jumphost/test \
-  -H "Content-Type: application/json" \
-  -d '{
-    "jumphost": {
-      "host": "jumphost.example.com",
-      "port": 22,
-      "username": "jumpuser",
-      "key_path": "/root/.ssh/jumphost_key"
-    }
-  }'
-```
-
-**Response (Success):**
-```json
-{
-  "host": "jumphost.example.com",
-  "port": 22,
-  "username": "jumpuser",
-  "success": true,
-  "message": "Successfully connected to jumphost jumphost.example.com:22 as user 'jumpuser'",
-  "error": null
-}
-```
-
-**Response (Failure):**
-```json
-{
-  "host": "jumphost.example.com",
-  "port": 22,
-  "username": "jumpuser",
-  "success": false,
-  "message": "Jumphost connection failed: SSH key not found",
-  "error": "SSH key not found: /root/.ssh/jumphost_key"
-}
-```
 
 **Use Cases:**
 - Verify SSH key file exists and is readable
@@ -309,32 +270,6 @@ curl -X POST http://localhost:8000/api/v1/execute \
         "command": "show ip interface brief"
       }
     ],
-    "use_jumphost": false,
-    "timeout": 30
-  }'
-```
-
-**With Jumphost:**
-
-```bash
-curl -X POST http://localhost:8000/api/v1/execute \
-  -H "Content-Type: application/json" \
-  -d '{
-    "devices": [
-      {
-        "hostname": "10.10.10.1",
-        "port": 22,
-        "username": "admin",
-        "password": "cisco123",
-        "os": "iosxe"
-      }
-    ],
-    "commands": [
-      {
-        "command": "show version"
-      }
-    ],
-    "use_jumphost": true,
     "timeout": 30
   }'
 ```
@@ -376,7 +311,6 @@ curl -X POST http://localhost:8000/api/v1/execute \
         "pipe_value": "router bgp"
       }
     ],
-    "use_jumphost": false,
     "timeout": 30
   }'
 ```
@@ -405,8 +339,7 @@ curl -X POST http://localhost:8000/api/v1/execute \
       {
         "command": "show version"
       }
-    ],
-    "use_jumphost": false
+    ]
   }'
 ```
 
@@ -440,7 +373,6 @@ Once the server is running, access the interactive API documentation:
       "pipe_value": "string (required if pipe_option set)"
     }
   ],
-  "use_jumphost": "boolean (default: false)",
   "timeout": "integer (default: 30)"
 }
 ```
@@ -511,9 +443,8 @@ Once the server is running, access the interactive API documentation:
 This API also functions as an MCP server, allowing AI assistants like Claude to directly execute network commands.
 
 ### MCP Features
-- **4 Tools Available**:
+- **3 Tools Available**:
   - `execute_show_commands` - Run show commands on devices
-  - `test_jumphost` - Test jumphost connectivity
   - `list_supported_os` - List supported operating systems
   - `list_pipe_options` - List available pipe filters
 - **Dual Transport**: stdio (local) and SSE (remote)
@@ -709,8 +640,7 @@ pyats-api/
 │   ├── main.py              # FastAPI application
 │   ├── models.py            # Pydantic models
 │   ├── config.py            # Configuration
-│   ├── device_manager.py    # PyATS/Unicon device handling
-│   └── jumphost.py          # SSH jumphost manager
+│   └── device_manager.py    # PyATS/Unicon device handling
 ├── examples/
 │   ├── client_example.py    # Python client examples
 │   └── curl_examples.sh     # cURL examples
@@ -724,7 +654,7 @@ pyats-api/
 ├── requirements-dev.txt     # Dev/test dependencies
 ├── pytest.ini               # Pytest configuration
 ├── tests/                   # Unit tests
-│   ├── test_models.py       # Model validation tests (34 tests)
+│   ├── test_models.py       # Model validation tests (24 tests)
 │   └── README.md            # Test documentation
 └── README.md                # This file
 
@@ -736,7 +666,7 @@ The project includes comprehensive unit tests for all Pydantic models and valida
 
 **Using Docker (Recommended):**
 ```bash
-# Run all tests (34 tests)
+# Run all tests (24 tests)
 docker run --rm -v $(pwd):/app -w /app python:3.11-slim bash -c \
   "pip install -q pytest pydantic && python -m pytest tests/ -v"
 
@@ -753,9 +683,8 @@ pytest tests/ -v
 
 ### Test Coverage
 
-✅ **34 tests covering:**
+✅ **24 tests covering:**
 - DeviceOS enum validation
-- JumphostConfig validation (host, port, username, key_path)
 - DeviceCredentials validation (including JunOS rejection)
 - ShowCommand validation (command injection prevention, pipe options)
 - ShowCommandRequest validation (multiple devices, timeout)

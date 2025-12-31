@@ -20,7 +20,6 @@ from app.models import (
     PipeOption
 )
 from app.device_manager import DeviceManager
-from app.jumphost import JumphostManager
 from app.config import settings
 
 # Configure logging
@@ -83,44 +82,9 @@ async def list_tools() -> list[Tool]:
                         "type": "integer",
                         "description": "Command timeout in seconds (default: 30)",
                         "default": 30
-                    },
-                    "use_jumphost": {
-                        "type": "boolean",
-                        "description": "Use global jumphost configuration (default: false)",
-                        "default": False
                     }
                 },
                 "required": ["hostname", "username", "password", "os", "commands"]
-            }
-        ),
-        Tool(
-            name="test_jumphost",
-            description=(
-                "Test SSH jumphost connectivity before executing commands on devices. "
-                "Validates jumphost configuration and SSH key accessibility."
-            ),
-            inputSchema={
-                "type": "object",
-                "properties": {
-                    "host": {
-                        "type": "string",
-                        "description": "Jumphost hostname or IP address"
-                    },
-                    "port": {
-                        "type": "integer",
-                        "description": "Jumphost SSH port (default: 22)",
-                        "default": 22
-                    },
-                    "username": {
-                        "type": "string",
-                        "description": "Jumphost SSH username"
-                    },
-                    "key_path": {
-                        "type": "string",
-                        "description": "Path to SSH private key for jumphost authentication"
-                    }
-                },
-                "required": ["host", "username", "key_path"]
             }
         ),
         Tool(
@@ -148,8 +112,6 @@ async def call_tool(name: str, arguments: Any) -> list[TextContent]:
     
     if name == "execute_show_commands":
         return await execute_show_commands_tool(arguments)
-    elif name == "test_jumphost":
-        return await test_jumphost_tool(arguments)
     elif name == "list_supported_os":
         return await list_supported_os_tool()
     elif name == "list_pipe_options":
@@ -177,7 +139,6 @@ async def execute_show_commands_tool(arguments: dict) -> list[TextContent]:
         # Parse commands
         commands = arguments["commands"]
         timeout = arguments.get("timeout", 30)
-        use_jumphost = arguments.get("use_jumphost", False)
         
         # Validate all commands
         show_commands = []
@@ -191,24 +152,6 @@ async def execute_show_commands_tool(arguments: dict) -> list[TextContent]:
                     text=f"Command validation failed for '{cmd_str}': {e.errors()[0]['msg']}"
                 )]
         
-        # Setup jumphost if requested
-        jumphost_manager = None
-        if use_jumphost:
-            if not all([settings.jumphost_host, settings.jumphost_username, settings.jumphost_key_path]):
-                return [TextContent(
-                    type="text",
-                    text="Jumphost requested but global configuration is incomplete. "
-                         "Set JUMPHOST_HOST, JUMPHOST_USERNAME, and JUMPHOST_KEY_PATH environment variables."
-                )]
-            
-            jumphost_manager = JumphostManager(
-                jumphost_host=settings.jumphost_host,
-                jumphost_port=settings.jumphost_port,
-                jumphost_username=settings.jumphost_username,
-                jumphost_key_path=settings.jumphost_key_path
-            )
-            jumphost_manager.connect()
-        
         # Execute commands using existing DeviceManager
         device_manager = None
         results = []
@@ -216,7 +159,6 @@ async def execute_show_commands_tool(arguments: dict) -> list[TextContent]:
         try:
             device_manager = DeviceManager(
                 device_creds=device_creds,
-                jumphost_manager=jumphost_manager,
                 timeout=timeout
             )
             
@@ -254,8 +196,6 @@ async def execute_show_commands_tool(arguments: dict) -> list[TextContent]:
         finally:
             if device_manager:
                 device_manager.disconnect()
-            if jumphost_manager:
-                jumphost_manager.disconnect()
     
     except ValidationError as e:
         error_msg = f"Validation error: {e.errors()[0]['msg']}"
@@ -264,42 +204,6 @@ async def execute_show_commands_tool(arguments: dict) -> list[TextContent]:
     
     except Exception as e:
         error_msg = f"Error executing commands: {str(e)}"
-        logger.error(error_msg, exc_info=True)
-        return [TextContent(type="text", text=error_msg)]
-
-
-async def test_jumphost_tool(arguments: dict) -> list[TextContent]:
-    """Test jumphost connectivity.
-    
-    Uses existing JumphostManager business logic.
-    """
-    try:
-        jumphost_manager = JumphostManager(
-            jumphost_host=arguments["host"],
-            jumphost_port=arguments.get("port", 22),
-            jumphost_username=arguments["username"],
-            jumphost_key_path=arguments["key_path"]
-        )
-        
-        try:
-            jumphost_manager.connect()
-            result_text = (
-                f"✓ Successfully connected to jumphost\n"
-                f"  Host: {arguments['host']}:{arguments.get('port', 22)}\n"
-                f"  Username: {arguments['username']}\n"
-                f"  Key: {arguments['key_path']}\n"
-            )
-            return [TextContent(type="text", text=result_text)]
-        
-        finally:
-            jumphost_manager.disconnect()
-    
-    except FileNotFoundError as e:
-        error_msg = f"✗ SSH key not found: {arguments['key_path']}"
-        return [TextContent(type="text", text=error_msg)]
-    
-    except Exception as e:
-        error_msg = f"✗ Jumphost connection failed: {str(e)}"
         logger.error(error_msg, exc_info=True)
         return [TextContent(type="text", text=error_msg)]
 
