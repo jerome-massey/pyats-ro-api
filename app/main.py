@@ -166,26 +166,31 @@ async def execute_commands(request: ShowCommandRequest):
     try:
         # Initialize global jumphost if requested (fallback for devices without per-device config)
         if request.use_jumphost:
-            if not all([
-                settings.jumphost_host,
-                settings.jumphost_username,
-                settings.jumphost_key_path
-            ]):
-                raise HTTPException(
-                    status_code=400,
-                    detail="Jumphost requested but global configuration is incomplete. "
-                           "Set JUMPHOST_HOST, JUMPHOST_USERNAME, and JUMPHOST_KEY_PATH environment variables, "
-                           "or provide per-device jumphost configuration."
-                )
+            # Check if we need global jumphost (any device without per-device config)
+            needs_global_jumphost = any(device.jumphost is None for device in request.devices)
             
-            logger.info("Initializing global jumphost connection")
-            global_jumphost_manager = JumphostManager(
-                jumphost_host=settings.jumphost_host,
-                jumphost_port=settings.jumphost_port,
-                jumphost_username=settings.jumphost_username,
-                jumphost_key_path=settings.jumphost_key_path
-            )
-            global_jumphost_manager.connect()
+            if needs_global_jumphost:
+                if not all([
+                    settings.jumphost_host,
+                    settings.jumphost_username,
+                    settings.jumphost_key_path
+                ]):
+                    raise HTTPException(
+                        status_code=400,
+                        detail="Jumphost requested but global configuration is incomplete. "
+                               "Set JUMPHOST_HOST, JUMPHOST_USERNAME, and JUMPHOST_KEY_PATH environment variables, "
+                               "or provide per-device jumphost configuration."
+                    )
+            
+            if needs_global_jumphost:
+                logger.info("Initializing global jumphost connection")
+                global_jumphost_manager = JumphostManager(
+                    jumphost_host=settings.jumphost_host,
+                    jumphost_port=settings.jumphost_port,
+                    jumphost_username=settings.jumphost_username,
+                    jumphost_key_path=settings.jumphost_key_path
+                )
+                global_jumphost_manager.connect()
         
         # Process each device
         for device_creds in request.devices:
