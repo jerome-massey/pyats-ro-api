@@ -9,10 +9,7 @@ version: '3.8'
 services:
   # REST API (existing functionality - unchanged)
   pyats-api:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    image: pyats-unified:latest
+    image: jeromemassey76/pyats-ro-api:latest
     container_name: pyats-api
     ports:
       - "8000:8000"
@@ -50,7 +47,7 @@ services:
 
   # MCP Server - SSE Transport (for remote MCP clients)
   pyats-mcp-sse:
-    image: pyats-unified:latest
+    image: jeromemassey76/pyats-ro-api:latest
     container_name: pyats-mcp-sse
     ports:
       - "3000:3000"
@@ -88,7 +85,7 @@ services:
   # This service is NOT started automatically - it's invoked on-demand
   # Usage: docker-compose -f docker-compose.mcp.yml run --rm pyats-mcp-stdio
   pyats-mcp-stdio:
-    image: pyats-unified:latest
+    image: jeromemassey76/pyats-ro-api:latest
     container_name: pyats-mcp-stdio
     environment:
       - LOG_LEVEL=INFO

@@ -32,7 +32,7 @@ services:
 
   # REST API Server
   pyats-api:
-    image: pyats-unified:latest
+    image: jeromemassey76/pyats-ro-api:latest
     container_name: pyats-api
     restart: unless-stopped
     command: python run.py
@@ -61,7 +61,7 @@ services:
 
   # MCP SSE Server
   pyats-mcp-sse:
-    image: pyats-unified:latest
+    image: jeromemassey76/pyats-ro-api:latest
     container_name: pyats-mcp-sse
     restart: unless-stopped
     command: python mcp_sse.py

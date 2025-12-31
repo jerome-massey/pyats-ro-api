@@ -1,8 +1,6 @@
 services:
   pyats-api:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: jeromemassey76/pyats-ro-api:latest
     container_name: pyats-api
     ports:
       - "8000:8000"
@@ -19,14 +17,6 @@ services:
       # - JUMPHOST_USERNAME=jumpuser
       # - JUMPHOST_KEY_PATH=/root/.ssh/jumphost_key
     
-    volumes:
-      # Mount SSH keys if using jumphost
-      # Uncomment and adjust path to your SSH private key
-      # - ~/.ssh/id_rsa:/root/.ssh/jumphost_key:ro
-      
-      # Mount application code for development (optional)
-      - ./app:/app/app
-      - ./run.py:/app/run.py
     
     restart: unless-stopped
     
