@@ -1,5 +1,11 @@
 # PyATS Show Command API
 
+![Tests](https://github.com/jerome-massey/pyats-ro-api/actions/workflows/tests.yml/badge.svg)
+![GitHub release (latest by date)](https://img.shields.io/github/v/release/jerome-massey/pyats-ro-api)
+![Docker Image Version](https://img.shields.io/docker/v/jeromemassey76/pyats-ro-api?label=docker&logo=docker)
+![Docker Pulls](https://img.shields.io/docker/pulls/jeromemassey76/pyats-ro-api?logo=docker)
+![GitHub](https://img.shields.io/github/license/jerome-massey/pyats-ro-api)
+
 A FastAPI-based REST API and MCP (Model Context Protocol) server for executing show commands on Cisco network devices using PyATS/Unicon with optional SSH jumphost support.
 
 ## Features
@@ -29,20 +35,50 @@ A FastAPI-based REST API and MCP (Model Context Protocol) server for executing s
 
 ## Installation
 
-### Option 1: Docker (Recommended)
+### Option 1: Docker Hub (Easiest - Recommended for Production)
+
+**Pre-built images are available on Docker Hub!**
+
+[![Docker Hub](https://img.shields.io/docker/v/jeromemassey76/pyats-ro-api?label=Docker%20Hub)](https://hub.docker.com/r/jeromemassey76/pyats-ro-api)
 
 **Quick Start - REST API Only:**
 ```bash
-# Development with hot-reload
+# Pull and run from Docker Hub
+docker pull jeromemassey76/pyats-ro-api:latest
+docker run -d -p 8000:8000 --name pyats-api jeromemassey76/pyats-ro-api:latest
+
+# Or use production compose file
+curl -O https://raw.githubusercontent.com/jerome-massey/pyats-ro-api/main/docker-compose.prod.yml
+docker-compose -f docker-compose.prod.yml up -d
+```
+
+**Quick Start - All Services (REST API + MCP):**
+```bash
+# Download and run multi-service setup
+curl -O https://raw.githubusercontent.com/jerome-massey/pyats-ro-api/main/docker-compose.mcp.prod.yml
+docker-compose -f docker-compose.mcp.prod.yml up -d
+
+# Services available:
+# - REST API: http://localhost:8000
+# - MCP SSE: http://localhost:3000
+```
+
+📖 **See [DOCKER_HUB.md](DOCKER_HUB.md) for complete Docker Hub deployment guide**
+
+### Option 2: Build Locally (Development)
+
+**Development with hot-reload:**
+```bash
+# Development - REST API only
 make dev
 
 # Or using docker-compose directly
 docker-compose -f docker-compose.dev.yml up
 ```
 
-**Quick Start - All Services (REST API + MCP):**
+**Development - All Services (REST API + MCP):**
 ```bash
-# Build and run all services
+# Build and run all services locally
 docker-compose -f docker-compose.mcp.yml up -d
 
 # Services available:
@@ -62,16 +98,9 @@ docker-compose -f docker-compose.mcp.yml up -d pyats-mcp-sse
 docker-compose -f docker-compose.mcp.yml up -d
 ```
 
-**Production:**
-```bash
-# REST API only (simple deployment)
-docker-compose up -d
+### Option 3: Production HTTPS (Nginx Reverse Proxy)
 
-# Or use multi-service deployment
-docker-compose -f docker-compose.mcp.yml up -d
-```
-
-**Production with HTTPS (Nginx Reverse Proxy):**
+**Production with HTTPS:**
 ```bash
 # Setup SSL certificates and start with Nginx
 # See NGINX_DEPLOYMENT.md for complete instructions
@@ -86,12 +115,12 @@ docker-compose -f docker-compose.nginx.yml up -d
 - REST API: http://localhost:8000
 - REST API Docs (Swagger UI): http://localhost:8000/docs
 - REST API Docs (ReDoc): http://localhost:8000/redoc
-- MCP SSE Server: http://localhost:3000 (if using docker-compose.mcp.yml)
+- MCP SSE Server: http://localhost:3000 (if using MCP compose files)
 - HTTPS (with nginx): https://localhost (REST API), https://localhost:3000 (MCP SSE)
 
 **Docker Configuration:**
 
-For jumphost support, edit `docker-compose.yml` or `docker-compose.mcp.yml`:
+For jumphost support, edit your docker-compose file or use environment variables:
 
 ```yaml
 environment:
@@ -104,7 +133,19 @@ volumes:
   - ~/.ssh/id_rsa:/root/.ssh/jumphost_key:ro
 ```
 
-### Option 2: Local Python Environment (Optional)
+Or when using `docker run`:
+```bash
+docker run -d \
+  -p 8000:8000 \
+  -v ~/.ssh/id_rsa:/root/.ssh/jumphost_key:ro \
+  -e JUMPHOST_HOST=jumphost.example.com \
+  -e JUMPHOST_PORT=22 \
+  -e JUMPHOST_USERNAME=jumpuser \
+  -e JUMPHOST_KEY_PATH=/root/.ssh/jumphost_key \
+  jeromemassey76/pyats-ro-api:latest
+```
+
+### Option 4: Local Python Environment (Development)
 
 If you prefer to run without Docker:
 
