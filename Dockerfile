@@ -8,6 +8,7 @@ WORKDIR /app
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
     openssh-client \
+    sshpass \
     gcc \
     && rm -rf /var/lib/apt/lists/*
 
@@ -30,6 +31,10 @@ COPY mcp_sse.py .
 # Create directory for SSH keys
 RUN mkdir -p /root/.ssh && chmod 700 /root/.ssh
 
+# Copy entrypoint script
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
 # Expose API port and MCP SSE port
 EXPOSE 8000 3000
 
@@ -37,6 +42,9 @@ EXPOSE 8000 3000
 ENV PYTHONUNBUFFERED=1
 ENV API_HOST=0.0.0.0
 ENV API_PORT=8000
+
+# Set entrypoint
+ENTRYPOINT ["/entrypoint.sh"]
 
 # Run the application
 CMD ["python", "run.py"]

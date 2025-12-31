@@ -53,7 +53,8 @@ class DeviceManager:
                 "username": self.device_creds.username,
                 "password": self.device_creds.password,
                 "port": self.device_creds.port,
-                "log_stdout": False,
+                "log_stdout": False,  # Disable verbose logging for production
+                "learn_hostname": True,  # Learn actual hostname from device
                 "settings": {
                     "EXEC_TIMEOUT": self.timeout,
                     "POST_DISCONNECT_WAIT_SEC": 0,
@@ -67,19 +68,14 @@ class DeviceManager:
             # Handle jumphost connection
             if self.jumphost_manager:
                 logger.info(f"Connecting to {self.device_creds.hostname} via jumphost")
-                
-                # Get channel through jumphost
-                self._jumphost_channel = self.jumphost_manager.get_transport_channel(
-                    self.device_creds.hostname,
-                    self.device_creds.port
-                )
-                
-                # Use the channel as a socket for Unicon
-                connection_args["via"] = self._jumphost_channel
-                connection_args["ssh_options"] = "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+                # Use sshpass to handle password auth through SSH ProxyJump
+                # SSH config file handles ProxyJump automatically for 10.250.250.* hosts
+                connection_args["start"] = [
+                    f"sshpass -p '{self.device_creds.password}' ssh {self.device_creds.username}@{self.device_creds.hostname}"
+                ]
+                logger.info(f"Using SSH config with sshpass for jumphost connection")
             else:
                 logger.info(f"Connecting directly to {self.device_creds.hostname}")
-                connection_args["ssh_options"] = "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
             
             # Create connection
             self.connection = Connection(**connection_args)
