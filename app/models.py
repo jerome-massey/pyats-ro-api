@@ -1,7 +1,7 @@
 """Pydantic models for API requests and responses."""
 
 from pydantic import BaseModel, Field, field_validator
-from typing import Optional, List, Literal, ClassVar, Pattern
+from typing import Optional, List, ClassVar, Pattern
 from enum import Enum
 import re
 
@@ -23,45 +23,6 @@ class PipeOption(str, Enum):
     SECTION = "section"
 
 
-class JumphostConfig(BaseModel):
-    """SSH Jumphost configuration (optional per-device)."""
-    host: str = Field(..., description="Jumphost hostname or IP address")
-    port: int = Field(default=22, description="Jumphost SSH port")
-    username: str = Field(..., description="Jumphost SSH username")
-    key_path: str = Field(..., description="Path to SSH private key for jumphost")
-    
-    @field_validator('host')
-    @classmethod
-    def validate_host(cls, v):
-        """Validate hostname/IP format."""
-        if not v or not isinstance(v, str) or len(v) == 0:
-            raise ValueError("Jumphost host cannot be empty")
-        if len(v) > 255:
-            raise ValueError("Jumphost host exceeds maximum length")
-        # Basic validation - allow alphanumeric, dots, hyphens
-        if not re.match(r'^[a-zA-Z0-9][a-zA-Z0-9\.\-]*[a-zA-Z0-9]$', v) and not re.match(r'^[a-zA-Z0-9]$', v):
-            raise ValueError("Invalid jumphost hostname/IP format")
-        return v
-    
-    @field_validator('port')
-    @classmethod
-    def validate_port(cls, v):
-        """Validate port range."""
-        if not (1 <= v <= 65535):
-            raise ValueError("Port must be between 1 and 65535")
-        return v
-    
-    @field_validator('username')
-    @classmethod
-    def validate_username(cls, v):
-        """Validate username format."""
-        if not v or len(v) == 0:
-            raise ValueError("Username cannot be empty")
-        if len(v) > 255:
-            raise ValueError("Username exceeds maximum length")
-        return v
-
-
 class DeviceCredentials(BaseModel):
     """Device credentials."""
     hostname: str = Field(..., description="Device hostname or IP address")
@@ -70,7 +31,6 @@ class DeviceCredentials(BaseModel):
     password: str = Field(..., description="Device password")
     os: DeviceOS = Field(..., description="Device operating system")
     enable_password: Optional[str] = Field(None, description="Enable password if required")
-    jumphost: Optional[JumphostConfig] = Field(None, description="Optional per-device SSH jumphost configuration")
     
     @field_validator('hostname')
     @classmethod
@@ -225,7 +185,6 @@ class ShowCommandRequest(BaseModel):
     """Request to execute show commands on one or more devices."""
     devices: List[DeviceCredentials] = Field(..., description="List of target devices")
     commands: List[ShowCommand] = Field(..., description="List of show commands to execute")
-    use_jumphost: bool = Field(default=False, description="Whether to use SSH jumphost")
     timeout: int = Field(default=30, description="Command timeout in seconds")
 
 
@@ -251,18 +210,3 @@ class ShowCommandResponse(BaseModel):
     total_devices: int
     successful_devices: int
     failed_devices: int
-
-
-class JumphostTestRequest(BaseModel):
-    """Request to test jumphost connectivity."""
-    jumphost: JumphostConfig = Field(..., description="Jumphost configuration to test")
-
-
-class JumphostTestResult(BaseModel):
-    """Result of jumphost connectivity test."""
-    host: str = Field(..., description="Jumphost hostname")
-    port: int = Field(..., description="Jumphost port")
-    username: str = Field(..., description="Jumphost username")
-    success: bool = Field(..., description="Whether jumphost connection succeeded")
-    message: str = Field(..., description="Test result message")
-    error: Optional[str] = Field(None, description="Error details if test failed")

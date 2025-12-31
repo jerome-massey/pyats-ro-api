@@ -16,8 +16,7 @@
           "command": "show version"
         }
       ],
-      "use_jumphost": false,
-      "timeout": 30
+            "timeout": 30
     }
   },
   "example_2_multiple_commands": {
@@ -42,8 +41,7 @@
           "command": "show inventory"
         }
       ],
-      "use_jumphost": false
-    }
+          }
   },
   "example_3_pipe_include": {
     "description": "Using pipe include filter",
@@ -63,8 +61,7 @@
           "pipe_value": "interface"
         }
       ],
-      "use_jumphost": false
-    }
+          }
   },
   "example_4_pipe_exclude": {
     "description": "Using pipe exclude filter",
@@ -84,8 +81,7 @@
           "pipe_value": "local"
         }
       ],
-      "use_jumphost": false
-    }
+          }
   },
   "example_5_pipe_begin": {
     "description": "Using pipe begin filter",
@@ -105,8 +101,7 @@
           "pipe_value": "Cisco IOS"
         }
       ],
-      "use_jumphost": false
-    }
+          }
   },
   "example_6_pipe_section": {
     "description": "Using pipe section filter",
@@ -126,8 +121,7 @@
           "pipe_value": "router bgp"
         }
       ],
-      "use_jumphost": false
-    }
+          }
   },
   "example_7_multiple_devices": {
     "description": "Execute commands on multiple devices",
@@ -151,8 +145,7 @@
           "command": "show version"
         }
       ],
-      "use_jumphost": false
-    }
+          }
   },
   "example_8_with_jumphost": {
     "description": "Connect through SSH jumphost",
@@ -173,8 +166,7 @@
           "command": "show ip interface brief"
         }
       ],
-      "use_jumphost": true,
-      "timeout": 60
+            "timeout": 60
     }
   },
   "example_9_nxos_with_enable": {
@@ -194,8 +186,7 @@
           "command": "show version"
         }
       ],
-      "use_jumphost": false
-    }
+          }
   },
   "example_10_complex": {
     "description": "Complex example: Multiple devices, multiple commands, various pipe options",
@@ -229,8 +220,8 @@
           "pipe_value": "0.0.0.0"
         }
       ],
-      "use_jumphost": false,
-      "timeout": 45
+            "timeout": 45
     }
   }
 }
+

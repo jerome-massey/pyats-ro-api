@@ -5,7 +5,6 @@ from typing import Optional, Dict, Any
 from unicon.core.errors import ConnectionError, TimeoutError
 from unicon import Connection
 from app.models import DeviceCredentials, ShowCommand
-from app.jumphost import JumphostManager
 
 logger = logging.getLogger(__name__)
 
@@ -16,24 +15,24 @@ class DeviceManager:
     def __init__(
         self,
         device_creds: DeviceCredentials,
-        jumphost_manager: Optional[JumphostManager] = None,
         timeout: int = 30
     ):
         """Initialize device manager.
         
         Args:
             device_creds: Device credentials and connection info
-            jumphost_manager: Optional jumphost manager for proxy connections
             timeout: Command timeout in seconds
         """
         self.device_creds = device_creds
-        self.jumphost_manager = jumphost_manager
         self.timeout = timeout
         self.connection: Optional[Connection] = None
-        self._jumphost_channel = None
     
     def connect(self) -> Connection:
         """Establish connection to the device.
+        
+        Jumphost routing is handled transparently by SSH config file in the container.
+        The SSH config file contains ProxyJump rules that automatically route connections
+        through the jumphost for configured subnet ranges.
         
         Returns:
             Connected Unicon Connection object
@@ -45,16 +44,13 @@ class DeviceManager:
             # Build connection parameters
             connection_args: Dict[str, Any] = {
                 "hostname": self.device_creds.hostname,
-                "start": ["ssh {}@{}".format(
-                    self.device_creds.username,
-                    self.device_creds.hostname
-                )],
+                "start": [f"sshpass -p '{self.device_creds.password}' ssh {self.device_creds.username}@{self.device_creds.hostname}"],
                 "os": self.device_creds.os.value,
                 "username": self.device_creds.username,
                 "password": self.device_creds.password,
                 "port": self.device_creds.port,
-                "log_stdout": False,  # Disable verbose logging for production
-                "learn_hostname": True,  # Learn actual hostname from device
+                "log_stdout": False,
+                "learn_hostname": True,
                 "settings": {
                     "EXEC_TIMEOUT": self.timeout,
                     "POST_DISCONNECT_WAIT_SEC": 0,
@@ -65,22 +61,10 @@ class DeviceManager:
             if self.device_creds.enable_password:
                 connection_args["enable_password"] = self.device_creds.enable_password
             
-            # Handle jumphost connection
-            if self.jumphost_manager:
-                logger.info(f"Connecting to {self.device_creds.hostname} via jumphost")
-                # Use sshpass to handle password auth through SSH ProxyJump
-                # SSH config file handles ProxyJump automatically for 10.250.250.* hosts
-                connection_args["start"] = [
-                    f"sshpass -p '{self.device_creds.password}' ssh {self.device_creds.username}@{self.device_creds.hostname}"
-                ]
-                logger.info(f"Using SSH config with sshpass for jumphost connection")
-            else:
-                logger.info(f"Connecting directly to {self.device_creds.hostname}")
+            logger.info(f"Connecting to {self.device_creds.hostname}")
             
-            # Create connection
+            # Create and connect
             self.connection = Connection(**connection_args)
-            
-            # Connect to device
             self.connection.connect()
             
             logger.info(f"Successfully connected to {self.device_creds.hostname}")
