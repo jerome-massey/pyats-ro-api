@@ -34,7 +34,7 @@ async def lifespan(app: FastAPI):
 # Create FastAPI application
 app = FastAPI(
     title="PyATS Show Command API",
-    description="Execute show commands on network devices via PyATS/Unicon with SSH jumphost support via container SSH config",
+    description="Execute show commands on network devices via PyATS/Unicon",
     version="1.0.0",
     lifespan=lifespan
 )
@@ -64,10 +64,6 @@ async def health_check():
 async def execute_commands(request: ShowCommandRequest):
     """Execute show commands on one or more network devices.
     
-    SSH jumphost support is handled transparently via SSH config file in the container.
-    The SSH config file contains ProxyJump rules that automatically route connections
-    through the jumphost for configured subnet ranges.
-    
     Args:
         request: ShowCommandRequest containing devices and commands
         
@@ -83,14 +79,10 @@ async def execute_commands(request: ShowCommandRequest):
     
     results: List[DeviceResult] = []
     
-    try:
-        # Process each device
-        for device_creds in request.devices:
-            device_result = await process_device(device_creds, request.commands, request.timeout)
-            results.append(device_result)
-    
-    finally:
-        pass  # No jumphost cleanup needed
+    # Process each device
+    for device_creds in request.devices:
+        device_result = await process_device(device_creds, request.commands, request.timeout)
+        results.append(device_result)
     
     # Calculate summary statistics
     successful_devices = sum(1 for r in results if r.success)

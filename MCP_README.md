@@ -207,17 +207,16 @@ curl http://localhost:3000/health
 
 ## Environment Variables
 
-Same as REST API, plus:
+Same as REST API:
 
 **MCP SSE Configuration:**
 - `MCP_HOST`: Host to bind to (default: 0.0.0.0)
 - `MCP_PORT`: Port for SSE server (default: 3000)
 
-**Jumphost Configuration (Optional):**
-- `JUMPHOST_HOST`: Jumphost hostname
-- `JUMPHOST_PORT`: Jumphost SSH port (default: 22)
-- `JUMPHOST_USERNAME`: Jumphost username
-- `JUMPHOST_KEY_PATH`: Path to SSH private key
+**API Configuration:**
+- `API_HOST`: API bind address (default: 0.0.0.0)
+- `API_PORT`: API port (default: 8000)
+- `LOG_LEVEL`: Logging level (default: INFO)
 
 ## Usage Examples
 
@@ -232,14 +231,7 @@ Username: admin, Password: cisco123, OS: iosxe
 
 Claude will use the `execute_show_commands` tool automatically.
 
-### Example 2: Test Jumphost
-
-```
-Test connectivity to my jumphost at jump.example.com 
-with username: netadmin and key: /root/.ssh/id_rsa
-```
-
-### Example 3: Query Available Tools
+### Example 2: Query Available Tools
 
 ```
 What network device operating systems do you support?
@@ -254,8 +246,8 @@ Same security model as REST API:
 1. **Show Commands Only**: Only commands starting with "show" are allowed
 2. **Input Validation**: All inputs validated via Pydantic models
 3. **No Credential Storage**: Credentials passed per-request (not stored)
-4. **SSH Key Auth**: Jumphost uses SSH key authentication
-5. **Container Isolation**: Runs in isolated Docker containers
+4. **Container Isolation**: Runs in isolated Docker containers
+5. **SSH Config Jumphost**: Jumphost routing via SSH config (transparent)
 
 **Additional MCP Security:**
 - stdio transport: Local only, no network exposure
@@ -327,7 +319,6 @@ pyats-api/
 **Unchanged files:**
 - `app/main.py` - REST API unchanged
 - `app/device_manager.py` - Business logic unchanged
-- `app/jumphost.py` - Business logic unchanged
 - `app/models.py` - Validation unchanged
 - All other app/ files - Unchanged
 

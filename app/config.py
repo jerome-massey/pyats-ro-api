@@ -12,12 +12,6 @@ class Settings(BaseSettings):
     api_port: int = 8000
     api_workers: int = 1
     
-    # SSH Jumphost Configuration (Optional)
-    jumphost_host: Optional[str] = None
-    jumphost_port: int = 22
-    jumphost_username: Optional[str] = None
-    jumphost_key_path: Optional[str] = None
-    
     # Logging
     log_level: str = "INFO"
     

@@ -1,4 +1,4 @@
-# Configuration
+﻿# Configuration
 
 Complete guide to configuring the PyATS Show Command API.
 
@@ -26,15 +26,6 @@ The API is configured using environment variables. These can be set via:
 | `MCP_HOST` | `0.0.0.0` | MCP SSE server bind address |
 | `MCP_PORT` | `3000` | MCP SSE server port |
 
-### Jumphost Configuration (Optional)
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `JUMPHOST_HOST` | `None` | Jumphost hostname or IP |
-| `JUMPHOST_PORT` | `22` | Jumphost SSH port |
-| `JUMPHOST_USERNAME` | `None` | Jumphost SSH username |
-| `JUMPHOST_KEY_PATH` | `None` | Path to SSH private key file |
-
 ---
 
 ## Configuration Methods
@@ -50,15 +41,9 @@ API_PORT=8000
 API_WORKERS=1
 LOG_LEVEL=INFO
 
-# MCP Configuration
+# MCP Configuration (if using MCP SSE)
 MCP_HOST=0.0.0.0
 MCP_PORT=3000
-
-# SSH Jumphost Configuration (Optional)
-JUMPHOST_HOST=jumphost.example.com
-JUMPHOST_PORT=22
-JUMPHOST_USERNAME=jumpuser
-JUMPHOST_KEY_PATH=/root/.ssh/jumphost_key
 ```
 
 Then run:
@@ -80,17 +65,12 @@ docker run -d \
   -e API_HOST=0.0.0.0 \
   -e API_PORT=8000 \
   -e LOG_LEVEL=INFO \
-  -e JUMPHOST_HOST=jumphost.example.com \
-  -e JUMPHOST_PORT=22 \
-  -e JUMPHOST_USERNAME=jumpuser \
-  -e JUMPHOST_KEY_PATH=/root/.ssh/jumphost_key \
-  -v ~/.ssh/jumphost_key:/root/.ssh/jumphost_key:ro \
   jeromemassey76/pyats-ro-api:latest
 ```
 
 **Docker Compose**:
 ```yaml
-version: '3.8'
+version: ''3.8''
 
 services:
   pyats-api:
@@ -102,238 +82,145 @@ services:
       - API_HOST=0.0.0.0
       - API_PORT=8000
       - LOG_LEVEL=INFO
-      - JUMPHOST_HOST=jumphost.example.com
-      - JUMPHOST_PORT=22
-      - JUMPHOST_USERNAME=jumpuser
-      - JUMPHOST_KEY_PATH=/root/.ssh/jumphost_key
-    volumes:
-      - ~/.ssh/jumphost_key:/root/.ssh/jumphost_key:ro
-    restart: unless-stopped
 ```
 
-### Method 3: Kubernetes ConfigMap & Secret
+### Method 3: Kubernetes ConfigMap
 
-**ConfigMap** (`configmap.yaml`):
 ```yaml
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: pyats-api-config
-  namespace: default
 data:
   API_HOST: "0.0.0.0"
   API_PORT: "8000"
-  API_WORKERS: "1"
   LOG_LEVEL: "INFO"
-  MCP_HOST: "0.0.0.0"
-  MCP_PORT: "3000"
-  JUMPHOST_HOST: "jumphost.example.com"
-  JUMPHOST_PORT: "22"
-  JUMPHOST_USERNAME: "jumpuser"
-  JUMPHOST_KEY_PATH: "/root/.ssh/jumphost_key"
 ```
 
-**Secret** (for SSH key):
+Apply and reference in deployment:
 ```bash
-kubectl create secret generic jumphost-ssh-key \
-  --from-file=key=/path/to/jumphost_key \
-  --namespace=default
+kubectl apply -f configmap.yaml
 ```
 
-**Deployment** (`deployment.yaml`):
 ```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: pyats-api
-spec:
-  template:
-    spec:
-      containers:
-      - name: pyats-api
-        image: jeromemassey76/pyats-ro-api:latest
-        envFrom:
-        - configMapRef:
-            name: pyats-api-config
-        volumeMounts:
-        - name: ssh-key
-          mountPath: /root/.ssh
-          readOnly: true
-      volumes:
-      - name: ssh-key
-        secret:
-          secretName: jumphost-ssh-key
-          defaultMode: 0400
+envFrom:
+  - configMapRef:
+      name: pyats-api-config
 ```
 
 ---
 
-## Jumphost Configuration
+## SSH Jumphost Configuration
+
+**Note**: As of v0.2.2, jumphost configuration is handled via SSH config files, not environment variables or API parameters.
 
 ### Overview
 
-The jumphost feature allows the API to connect to devices behind a bastion/jump host using SSH key-based authentication.
+The jumphost feature allows the API to connect to devices behind a bastion/jump host using SSH ProxyJump. This is configured transparently via the container''s SSH config file.
 
-### Prerequisites
+### How It Works
 
-1. **SSH Key Pair**: Generate if you don't have one
-2. **Public Key on Jumphost**: Copy to jumphost's `~/.ssh/authorized_keys`
-3. **Private Key Accessible**: Mount into container or available on filesystem
-4. **Network Access**: API can reach jumphost on port 22
+1. SSH config file at `/root/.ssh/config` defines ProxyJump rules
+2. When connecting to devices matching specific patterns, SSH automatically routes through the jumphost
+3. No API parameters needed - it''s transparent to API requests
 
-### Step-by-Step Setup
+### Default Configuration
 
-#### 1. Generate SSH Key (if needed)
+The default `entrypoint.sh` creates this SSH config:
 
 ```bash
-# Generate SSH key pair
-ssh-keygen -t rsa -b 4096 -f ~/.ssh/jumphost_key -N ""
+# Jumphost configuration
+Host jumphost
+    HostName 10.0.0.21
+    User cisco
+    Port 22
+    IdentityFile /root/.ssh/jumphost_key
 
-# This creates:
-# - ~/.ssh/jumphost_key (private key)
-# - ~/.ssh/jumphost_key.pub (public key)
+# Route all 10.250.250.* connections through jumphost
+Host 10.250.250.*
+    ProxyJump jumphost
 ```
 
-#### 2. Copy Public Key to Jumphost
+### Custom Configuration
+
+To customize jumphost routing, modify `entrypoint.sh` or mount a custom SSH config:
+
+**Option A: Modify entrypoint.sh**
+
+Edit the SSH config generation in `entrypoint.sh`:
 
 ```bash
-# Method 1: Using ssh-copy-id
-ssh-copy-id -i ~/.ssh/jumphost_key.pub user@jumphost.example.com
+cat > /root/.ssh/config << ''EOF''
+Host jumphost
+    HostName YOUR_JUMPHOST_IP
+    User YOUR_USERNAME
+    Port 22
+    IdentityFile /root/.ssh/jumphost_key
 
-# Method 2: Manual copy
-cat ~/.ssh/jumphost_key.pub | ssh user@jumphost.example.com \
-  "mkdir -p ~/.ssh && cat >> ~/.ssh/authorized_keys"
-
-# Method 3: Direct copy (if you have access)
-# On jumphost:
-cat >> ~/.ssh/authorized_keys << 'EOF'
-ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQ... user@host
+# Route specific subnet through jumphost
+Host 192.168.100.*
+    ProxyJump jumphost
 EOF
 ```
 
-#### 3. Verify SSH Key Authentication
+**Option B: Mount SSH Config**
 
 ```bash
-# Test connection (should not prompt for password)
-ssh -i ~/.ssh/jumphost_key user@jumphost.example.com
-```
+# Create custom SSH config
+cat > ssh_config << ''EOF''
+Host prod-jumphost
+    HostName bastion.prod.example.com
+    User automation
+    Port 22
+    IdentityFile /root/.ssh/jumphost_key
 
-#### 4. Configure API
+Host 10.10.*
+    ProxyJump prod-jumphost
+EOF
 
-**Option A: Global Jumphost (Environment Variables)**
-
-Use for all requests that set `use_jumphost: true`:
-
-```bash
-# .env file
-JUMPHOST_HOST=jumphost.example.com
-JUMPHOST_PORT=22
-JUMPHOST_USERNAME=jumpuser
-JUMPHOST_KEY_PATH=/root/.ssh/jumphost_key
-```
-
-```bash
-# Docker run with volume mount
+# Mount into container
 docker run -d \
-  -p 8000:8000 \
+  -v $(pwd)/ssh_config:/root/.ssh/config:ro \
   -v ~/.ssh/jumphost_key:/root/.ssh/jumphost_key:ro \
-  -e JUMPHOST_HOST=jumphost.example.com \
-  -e JUMPHOST_PORT=22 \
-  -e JUMPHOST_USERNAME=jumpuser \
-  -e JUMPHOST_KEY_PATH=/root/.ssh/jumphost_key \
   jeromemassey76/pyats-ro-api:latest
 ```
 
-**Option B: Per-Device Jumphost (Request Body)**
+### SSH Key Setup
 
-Specify jumphost config per device in API request:
-
-```json
-{
-  "devices": [
-    {
-      "hostname": "192.168.1.1",
-      "username": "admin",
-      "password": "cisco123",
-      "os": "iosxe",
-      "jumphost": {
-        "host": "jumphost.example.com",
-        "port": 22,
-        "username": "jumpuser",
-        "key_path": "/root/.ssh/jumphost_key"
-      }
-    }
-  ],
-  "commands": [
-    {"command": "show version"}
-  ]
-}
+1. **Generate SSH Key** (if needed):
+```bash
+ssh-keygen -t rsa -b 4096 -f ~/.ssh/jumphost_key -N ""
 ```
 
-#### 5. Test Jumphost Connection
+2. **Copy Public Key to Jumphost**:
+```bash
+ssh-copy-id -i ~/.ssh/jumphost_key.pub user@jumphost.example.com
+```
 
-Use the jumphost test endpoint:
+3. **Verify Connection**:
+```bash
+ssh -i ~/.ssh/jumphost_key user@jumphost.example.com
+```
+
+4. **Mount Key into Container**:
+```bash
+docker run -d \
+  -v ~/.ssh/jumphost_key:/root/.ssh/jumphost_key:ro \
+  jeromemassey76/pyats-ro-api:latest
+```
+
+### File Permissions
+
+Ensure SSH keys have correct permissions:
 
 ```bash
-curl -X POST http://localhost:8000/api/v1/jumphost/test \
-  -H "Content-Type: application/json" \
-  -d '{
-    "jumphost": {
-      "host": "jumphost.example.com",
-      "port": 22,
-      "username": "jumpuser",
-      "key_path": "/root/.ssh/jumphost_key"
-    }
-  }'
+# Private key (on host)
+chmod 600 ~/.ssh/jumphost_key
+
+# Public key on jumphost
+chmod 700 ~/.ssh
+chmod 600 ~/.ssh/authorized_keys
 ```
-
-Expected response:
-```json
-{
-  "success": true,
-  "message": "Successfully connected to jumphost jumphost.example.com:22 as user 'jumpuser'"
-}
-```
-
-### Jumphost Troubleshooting
-
-#### SSH Key Not Found
-
-**Error**: `"SSH key not found: /root/.ssh/jumphost_key"`
-
-**Solution**: Ensure key is mounted into container:
-```bash
-docker run -v ~/.ssh/jumphost_key:/root/.ssh/jumphost_key:ro ...
-```
-
-#### Permission Denied
-
-**Error**: `"Authentication failed"`
-
-**Solution**: 
-1. Verify public key is in jumphost's `~/.ssh/authorized_keys`
-2. Check permissions:
-   ```bash
-   # On jumphost
-   chmod 700 ~/.ssh
-   chmod 600 ~/.ssh/authorized_keys
-   ```
-3. Test SSH connection manually:
-   ```bash
-   ssh -i ~/.ssh/jumphost_key user@jumphost.example.com
-   ```
-
-#### Connection Timeout
-
-**Error**: `"Connection timeout"`
-
-**Solution**:
-1. Verify network connectivity from container to jumphost
-2. Check firewall rules
-3. Ensure jumphost is listening on specified port:
-   ```bash
-   ssh -p 22 user@jumphost.example.com
-   ```
 
 ---
 
@@ -394,29 +281,6 @@ kubectl logs pyats-api-xxxxx -f
 kubectl logs pyats-api-xxxxx --previous
 ```
 
-### Persistent Logging
-
-Mount log directory to persist logs:
-
-```bash
-# Create log directory
-mkdir -p logs/api
-
-# Run with volume mount
-docker run -d \
-  -v $(pwd)/logs/api:/app/logs \
-  jeromemassey76/pyats-ro-api:latest
-```
-
-**Docker Compose**:
-```yaml
-services:
-  pyats-api:
-    image: jeromemassey76/pyats-ro-api:latest
-    volumes:
-      - ./logs/api:/app/logs
-```
-
 ---
 
 ## Performance Tuning
@@ -434,7 +298,7 @@ API_WORKERS=4
 
 ### Timeouts
 
-Adjust command timeout:
+Adjust command timeout in API requests:
 
 ```json
 {
@@ -486,7 +350,7 @@ Ensure SSH keys have correct permissions:
 
 ```bash
 # Private key (mounted into container)
-chmod 400 ~/.ssh/jumphost_key
+chmod 600 ~/.ssh/jumphost_key
 
 # On jumphost
 chmod 700 ~/.ssh
@@ -496,7 +360,7 @@ chmod 600 ~/.ssh/authorized_keys
 ### Network Security
 
 1. **Restrict API access** using firewall rules
-2. **Use HTTPS** in production (see [HTTPS Setup](HTTPS-Setup))
+2. **Use HTTPS** in production
 3. **Implement authentication** (API keys, OAuth2)
 4. **Network segmentation** (VLANs, VPNs)
 
@@ -524,43 +388,60 @@ LOG_LEVEL=INFO
 API_WORKERS=4
 ```
 
-### Example 3: With Jumphost
+### Example 3: With Custom Jumphost
 
 ```bash
-# .env
-API_HOST=0.0.0.0
-API_PORT=8000
-LOG_LEVEL=INFO
+# Custom entrypoint.sh with multiple jumphosts
+cat > entrypoint.sh << ''SCRIPT''
+#!/bin/bash
 
-JUMPHOST_HOST=bastion.prod.example.com
-JUMPHOST_PORT=22
-JUMPHOST_USERNAME=automation
-JUMPHOST_KEY_PATH=/root/.ssh/prod_key
-```
+# Copy SSH key if mounted
+if [ -f "/root/.ssh/jumphost_key.mounted" ]; then
+    cp /root/.ssh/jumphost_key.mounted /root/.ssh/jumphost_key
+    chmod 600 /root/.ssh/jumphost_key
+fi
 
-### Example 4: MCP SSE Server
+# Create SSH config with multiple jumphost rules
+cat > /root/.ssh/config << ''EOF''
+Host *
+    StrictHostKeyChecking no
+    UserKnownHostsFile /dev/null
 
-```bash
-# .env
-MCP_HOST=0.0.0.0
-MCP_PORT=3000
-LOG_LEVEL=INFO
+Host prod-jump
+    HostName 10.1.1.1
+    User produser
+    IdentityFile /root/.ssh/jumphost_key
 
-JUMPHOST_HOST=jumphost.example.com
-JUMPHOST_PORT=22
-JUMPHOST_USERNAME=mcp-user
-JUMPHOST_KEY_PATH=/root/.ssh/mcp_key
+Host dev-jump
+    HostName 10.2.2.1
+    User devuser
+    IdentityFile /root/.ssh/jumphost_key
+
+# Production subnet via prod jumphost
+Host 172.16.*
+    ProxyJump prod-jump
+
+# Dev subnet via dev jumphost
+Host 192.168.*
+    ProxyJump dev-jump
+EOF
+
+chmod 600 /root/.ssh/config
+exec "$@"
+SCRIPT
+
+chmod +x entrypoint.sh
 ```
 
 ---
 
 ## Next Steps
 
-- **[Jumphost Configuration](Jumphost-Configuration)** - Detailed jumphost setup
-- **[Security Best Practices](Security)** - Security hardening
+- **[Getting Started](Getting-Started)** - Quick start guide
+- **[API Reference](API-Reference)** - Complete API documentation
 - **[Deployment](Deployment)** - Production deployment
-- **[Monitoring](Monitoring)** - Logging and monitoring
+- **[Security](Security)** - Security best practices
 
 ---
 
-**Navigation**: [← Getting Started](Getting-Started) | [Home](Home) | [Deployment →](Deployment)
+**Navigation**: [ Getting Started](Getting-Started) | [Home](Home) | [Deployment ](Deployment)
