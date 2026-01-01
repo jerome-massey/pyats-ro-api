@@ -167,17 +167,30 @@ python run.py
 
 ## Configuration
 
-### Environment Variables
+### SSH configuration (jumphost + device routing)
 
-Create a `.env` file for jumphost configuration (optional):
+Use SSH config files and mounted keys (no more `JUMPHOST_*` env vars). See [SSH_CONFIGURATION.md](SSH_CONFIGURATION.md) for the full guide.
+
+**Quick start:**
+1) Create `ssh_config.d` with your jumphost and device routing files (examples in SSH_CONFIGURATION.md).
+2) Mount the config directory **writable** and your key **read-only**:
+
+```powershell
+docker run --rm -v ${PWD}/ssh_config.d:/root/.ssh/config.d -v "${PWD}/your_ssh_key:/root/.ssh/ssh_key.mounted:ro" -p 8000:8000 pyats-ro-api:latest python run.py
+```
+
+**Docker Compose snippet:**
+```yaml
+volumes:
+  - ./ssh_config.d:/root/.ssh/config.d    # leave writable so entrypoint can fix perms
+  - ~/.ssh/my_key:/root/.ssh/ssh_key.mounted:ro
+```
+
+### API Environment Variables
+
+Create a `.env` file for API configuration (optional):
 
 ```bash
-# SSH Jumphost Configuration (Optional)
-JUMPHOST_HOST=jumphost.example.com
-JUMPHOST_PORT=22
-JUMPHOST_USERNAME=jumpuser
-JUMPHOST_KEY_PATH=/path/to/private/key
-
 # API Configuration
 API_HOST=0.0.0.0
 API_PORT=8000
@@ -185,20 +198,6 @@ API_WORKERS=1
 
 # Logging
 LOG_LEVEL=INFO
-```
-
-### SSH Key Setup
-
-If using jumphost, ensure your SSH private key is accessible:
-
-```bash
-# Example: Use existing SSH key
-JUMPHOST_KEY_PATH=~/.ssh/id_rsa
-
-# Or generate a new key
-ssh-keygen -t rsa -b 4096 -f ~/.ssh/jumphost_key
-# Copy public key to jumphost
-ssh-copy-id -i ~/.ssh/jumphost_key.pub user@jumphost.example.com
 ```
 
 ## Usage

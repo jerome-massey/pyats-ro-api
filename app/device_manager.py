@@ -124,12 +124,3 @@ class DeviceManager:
                 logger.warning(f"Error during disconnect from {self.device_creds.hostname}: {e}")
             finally:
                 self.connection = None
-        
-        # Close jumphost channel if used
-        if self._jumphost_channel:
-            try:
-                self._jumphost_channel.close()
-            except Exception as e:
-                logger.warning(f"Error closing jumphost channel: {e}")
-            finally:
-                self._jumphost_channel = None
