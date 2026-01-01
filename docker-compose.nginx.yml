@@ -40,14 +40,7 @@ services:
       - API_HOST=0.0.0.0
       - API_PORT=8000
       - LOG_LEVEL=INFO
-      # Optional: Jumphost configuration
-      # - JUMPHOST_HOST=jumphost.example.com
-      # - JUMPHOST_PORT=22
-      # - JUMPHOST_USERNAME=jumpuser
-      # - JUMPHOST_KEY_PATH=/root/.ssh/jumphost_key
     volumes:
-      # Optional: Mount SSH keys for jumphost
-      # - ~/.ssh/jumphost_key:/root/.ssh/jumphost_key:ro
       - ./logs/api:/app/logs
     networks:
       - pyats-network
@@ -69,14 +62,7 @@ services:
       - MCP_HOST=0.0.0.0
       - MCP_PORT=3000
       - LOG_LEVEL=INFO
-      # Optional: Jumphost configuration
-      # - JUMPHOST_HOST=jumphost.example.com
-      # - JUMPHOST_PORT=22
-      # - JUMPHOST_USERNAME=jumpuser
-      # - JUMPHOST_KEY_PATH=/root/.ssh/jumphost_key
     volumes:
-      # Optional: Mount SSH keys for jumphost
-      # - ~/.ssh/jumphost_key:/root/.ssh/jumphost_key:ro
       - ./logs/mcp:/app/logs
     networks:
       - pyats-network

@@ -10,13 +10,6 @@ services:
       - API_PORT=8000
       - API_WORKERS=1
       - LOG_LEVEL=INFO
-      
-      # Jumphost Configuration (Optional - uncomment and configure if needed)
-      # - JUMPHOST_HOST=jumphost.example.com
-      # - JUMPHOST_PORT=22
-      # - JUMPHOST_USERNAME=jumpuser
-      # - JUMPHOST_KEY_PATH=/root/.ssh/jumphost_key
-    
     
     restart: unless-stopped
     

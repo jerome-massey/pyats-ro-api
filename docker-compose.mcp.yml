@@ -19,19 +19,8 @@ services:
       - API_PORT=8000
       - API_WORKERS=1
       - LOG_LEVEL=INFO
-      
-      # Jumphost Configuration (Optional)
-      # Uncomment and configure if using jumphost
-      # - JUMPHOST_HOST=jumphost.example.com
-      # - JUMPHOST_PORT=22
-      # - JUMPHOST_USERNAME=jumpuser
-      # - JUMPHOST_KEY_PATH=/root/.ssh/jumphost_key
     
     volumes:
-      # Mount SSH keys if using jumphost
-      # Uncomment and adjust path to your SSH private key
-      # - ~/.ssh/id_rsa:/root/.ssh/jumphost_key:ro
-      
       # Optional: Mount examples for testing
       - ./examples:/app/examples
     
@@ -56,18 +45,8 @@ services:
       - MCP_HOST=0.0.0.0
       - MCP_PORT=3000
       - LOG_LEVEL=INFO
-      
-      # Jumphost Configuration (Optional)
-      # Shares same config as REST API
-      # - JUMPHOST_HOST=jumphost.example.com
-      # - JUMPHOST_PORT=22
-      # - JUMPHOST_USERNAME=jumpuser
-      # - JUMPHOST_KEY_PATH=/root/.ssh/jumphost_key
     
     volumes:
-      # Mount SSH keys if using jumphost
-      # - ~/.ssh/id_rsa:/root/.ssh/jumphost_key:ro
-      
       # Optional: Mount examples
       - ./examples:/app/examples
     
@@ -89,19 +68,6 @@ services:
     container_name: pyats-mcp-stdio
     environment:
       - LOG_LEVEL=INFO
-      
-      # Jumphost Configuration (Optional)
-      # - JUMPHOST_HOST=jumphost.example.com
-      # - JUMPHOST_PORT=22
-      # - JUMPHOST_USERNAME=jumpuser
-      # - JUMPHOST_KEY_PATH=/root/.ssh/jumphost_key
-    
-    volumes:
-      # Mount SSH keys if using jumphost
-      # - ~/.ssh/id_rsa:/root/.ssh/jumphost_key:ro
-      
-      # Optional: Mount examples
-      - ./examples:/app/examples
     
     # No ports - stdio uses stdin/stdout
     stdin_open: true
