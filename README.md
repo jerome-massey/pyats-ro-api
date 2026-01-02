@@ -372,7 +372,8 @@ Once the server is running, access the interactive API documentation:
       "pipe_value": "string (required if pipe_option set)"
     }
   ],
-  "timeout": "integer (default: 30)"
+  "timeout": "integer (default: 30)",
+  "output_format": "enum: raw|parsed|both (default: raw)"
 }
 ```
 
@@ -390,6 +391,8 @@ Once the server is running, access the interactive API documentation:
         {
           "command": "string",
           "output": "string",
+          "parsed": "object (optional)",
+          "parse_error": "string (optional)",
           "success": "boolean",
           "error": "string (optional)"
         }
@@ -448,6 +451,7 @@ This API also functions as an MCP server, allowing AI assistants like Claude to 
   - `list_pipe_options` - List available pipe filters
 - **Dual Transport**: stdio (local) and SSE (remote)
 - **Same Security**: All validation rules apply to MCP tools
+- **Output Format**: `output_format` accepts `raw` (default), `parsed`, or `both` using Genie parsing
 
 ### Quick Start - MCP
 
@@ -653,7 +657,7 @@ pyats-api/
 ├── requirements-dev.txt     # Dev/test dependencies
 ├── pytest.ini               # Pytest configuration
 ├── tests/                   # Unit tests
-│   ├── test_models.py       # Model validation tests (24 tests)
+│   ├── test_models.py       # Model validation tests (26 tests)
 │   └── README.md            # Test documentation
 └── README.md                # This file
 
@@ -665,7 +669,7 @@ The project includes comprehensive unit tests for all Pydantic models and valida
 
 **Using Docker (Recommended):**
 ```bash
-# Run all tests (24 tests)
+# Run all tests (26 tests)
 docker run --rm -v $(pwd):/app -w /app python:3.11-slim bash -c \
   "pip install -q pytest pydantic && python -m pytest tests/ -v"
 
@@ -682,7 +686,7 @@ pytest tests/ -v
 
 ### Test Coverage
 
-✅ **24 tests covering:**
+✅ **26 tests covering:**
 - DeviceOS enum validation
 - DeviceCredentials validation (including JunOS rejection)
 - ShowCommand validation (command injection prevention, pipe options)

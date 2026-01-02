@@ -8,6 +8,7 @@ from app.models import (
     DeviceCredentials,
     ShowCommand,
     ShowCommandRequest,
+    OutputFormat,
 )
 
 
@@ -248,6 +249,37 @@ class TestShowCommandRequest:
             timeout=60
         )
         assert req.timeout == 60
+
+    def test_request_output_format_default_raw(self):
+        """Test output_format defaults to raw."""
+        req = ShowCommandRequest(
+            devices=[
+                DeviceCredentials(
+                    hostname="192.168.1.1",
+                    username="admin",
+                    password="password123",
+                    os=DeviceOS.IOS
+                )
+            ],
+            commands=[ShowCommand(command="show version")]
+        )
+        assert req.output_format == OutputFormat.RAW
+
+    def test_request_output_format_parsed(self):
+        """Test parsed output_format is accepted."""
+        req = ShowCommandRequest(
+            devices=[
+                DeviceCredentials(
+                    hostname="192.168.1.1",
+                    username="admin",
+                    password="password123",
+                    os=DeviceOS.IOS
+                )
+            ],
+            commands=[ShowCommand(command="show version")],
+            output_format=OutputFormat.PARSED
+        )
+        assert req.output_format == OutputFormat.PARSED
     
     def test_request_multiple_devices(self):
         """Test request with multiple devices."""

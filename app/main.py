@@ -10,7 +10,8 @@ from app.models import (
     ShowCommandRequest,
     ShowCommandResponse,
     DeviceResult,
-    CommandResult
+    CommandResult,
+    OutputFormat
 )
 from app.device_manager import DeviceManager
 from app.config import settings
@@ -35,7 +36,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="PyATS Show Command API",
     description="Execute show commands on network devices via PyATS/Unicon",
-    version="1.0.0",
+    version="0.3.0",
     lifespan=lifespan
 )
 
@@ -45,7 +46,7 @@ async def root():
     """Root endpoint with API information."""
     return {
         "name": "PyATS Show Command API",
-        "version": "1.0.0",
+        "version": "0.3.0",
         "description": "Execute show commands on network devices",
         "endpoints": {
             "health": "/health",
@@ -81,7 +82,12 @@ async def execute_commands(request: ShowCommandRequest):
     
     # Process each device
     for device_creds in request.devices:
-        device_result = await process_device(device_creds, request.commands, request.timeout)
+        device_result = await process_device(
+            device_creds,
+            request.commands,
+            request.timeout,
+            request.output_format
+        )
         results.append(device_result)
     
     # Calculate summary statistics
@@ -96,7 +102,7 @@ async def execute_commands(request: ShowCommandRequest):
     )
 
 
-async def process_device(device_creds, commands, timeout) -> DeviceResult:
+async def process_device(device_creds, commands, timeout, output_format: OutputFormat) -> DeviceResult:
     """Process commands for a single device.
     
     Args:
@@ -118,12 +124,18 @@ async def process_device(device_creds, commands, timeout) -> DeviceResult:
         device_manager.connect()
         
         # Execute each command
+        parse_requested = output_format in (OutputFormat.PARSED, OutputFormat.BOTH)
         for cmd in commands:
             try:
-                output = device_manager.execute_command(cmd)
+                raw_output, parsed_output, parse_error = device_manager.execute_command(
+                    cmd,
+                    parse=parse_requested
+                )
                 command_results.append(CommandResult(
                     command=cmd.get_full_command(),
-                    output=output,
+                    output=raw_output,
+                    parsed=parsed_output,
+                    parse_error=parse_error,
                     success=True
                 ))
             except Exception as e:
@@ -131,6 +143,8 @@ async def process_device(device_creds, commands, timeout) -> DeviceResult:
                 command_results.append(CommandResult(
                     command=cmd.get_full_command(),
                     output="",
+                    parsed=None,
+                    parse_error=None,
                     success=False,
                     error=str(e)
                 ))

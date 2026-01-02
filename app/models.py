@@ -1,7 +1,7 @@
 """Pydantic models for API requests and responses."""
 
 from pydantic import BaseModel, Field, field_validator
-from typing import Optional, List, ClassVar, Pattern
+from typing import Optional, List, ClassVar, Pattern, Any
 from enum import Enum
 import re
 
@@ -21,6 +21,13 @@ class PipeOption(str, Enum):
     EXCLUDE = "exclude"
     BEGIN = "begin"
     SECTION = "section"
+
+
+class OutputFormat(str, Enum):
+    """Available output formats for command execution."""
+    RAW = "raw"
+    PARSED = "parsed"
+    BOTH = "both"
 
 
 class DeviceCredentials(BaseModel):
@@ -186,6 +193,7 @@ class ShowCommandRequest(BaseModel):
     devices: List[DeviceCredentials] = Field(..., description="List of target devices")
     commands: List[ShowCommand] = Field(..., description="List of show commands to execute")
     timeout: int = Field(default=30, description="Command timeout in seconds")
+    output_format: OutputFormat = Field(default=OutputFormat.RAW, description="Output format: raw, parsed, or both")
 
 
 class CommandResult(BaseModel):
@@ -193,6 +201,8 @@ class CommandResult(BaseModel):
     command: str
     output: str
     success: bool
+    parsed: Optional[Any] = None
+    parse_error: Optional[str] = None
     error: Optional[str] = None
 
 

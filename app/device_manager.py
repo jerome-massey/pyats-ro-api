@@ -4,6 +4,7 @@ import logging
 from typing import Optional, Dict, Any
 from unicon.core.errors import ConnectionError, TimeoutError
 from unicon import Connection
+from genie.metaparser.util.exceptions import SchemaEmptyParserError, SchemaMissingKeyError
 from app.models import DeviceCredentials, ShowCommand
 
 logger = logging.getLogger(__name__)
@@ -77,14 +78,15 @@ class DeviceManager:
             logger.error(f"Unexpected error connecting to {self.device_creds.hostname}: {e}")
             raise
     
-    def execute_command(self, command: ShowCommand) -> str:
-        """Execute a show command on the device.
+    def execute_command(self, command: ShowCommand, parse: bool = False):
+        """Execute a show command on the device and optionally parse it.
         
         Args:
             command: ShowCommand object with command and optional pipe filters
+            parse: Whether to parse the output using Genie
             
         Returns:
-            Command output as string
+            Tuple of (raw_output, parsed_output | None, parse_error | None)
             
         Raises:
             RuntimeError: If device is not connected
@@ -94,18 +96,42 @@ class DeviceManager:
             raise RuntimeError(f"Device {self.device_creds.hostname} not connected")
         
         try:
-            # Get the full command with pipe options
             full_command = command.get_full_command()
-            
             logger.info(f"Executing on {self.device_creds.hostname}: {full_command}")
             
-            # Execute command
-            output = self.connection.execute(
+            raw_output = self.connection.execute(
                 full_command,
                 timeout=self.timeout
             )
+            parsed_output = None
+            parse_error = None
             
-            return output
+            if parse:
+                try:
+                    # Use Genie parser via device.parse()
+                    from genie.conf.base import Device
+                    
+                    # Create a Genie device wrapper around the connection
+                    device = Device(
+                        name=self.device_creds.hostname,
+                        os=self.device_creds.os.value
+                    )
+                    device.custom.setdefault('abstraction', {})['order'] = ['os']
+                    
+                    # Attach the connection
+                    device.cli = self.connection
+                    
+                    # Parse using the base command (without pipe options)
+                    parsed_output = device.parse(command.command, output=raw_output)
+                    logger.info(f"Successfully parsed output for {command.command}")
+                except (SchemaEmptyParserError, SchemaMissingKeyError) as e:
+                    parse_error = f"Parser schema error: {str(e)}"
+                    logger.warning(f"Parse failed for {command.command}: {parse_error}")
+                except Exception as e:
+                    parse_error = f"Parser not available or failed: {str(e)}"
+                    logger.warning(f"Parse failed for {command.command}: {parse_error}")
+            
+            return raw_output, parsed_output, parse_error
             
         except TimeoutError as e:
             logger.error(f"Command timeout on {self.device_creds.hostname}: {e}")

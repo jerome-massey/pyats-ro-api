@@ -58,7 +58,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="PyATS MCP Server (SSE)",
     description="MCP server for executing show commands on Cisco network devices via SSE transport",
-    version="1.0.0",
+    version="0.3.0",
     lifespan=lifespan
 )
 
@@ -69,7 +69,7 @@ async def root():
     return {
         "name": "PyATS MCP Server",
         "transport": "SSE (Server-Sent Events)",
-        "version": "1.0.0",
+        "version": "0.3.0",
         "endpoints": {
             "sse": "/sse",
             "health": "/health"

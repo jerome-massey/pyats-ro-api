@@ -6,6 +6,7 @@ the PyATS show command functionality to AI assistants and other MCP clients.
 The server uses existing business logic from app/ without modification.
 """
 
+import json
 import logging
 from typing import Any
 from mcp.server import Server
@@ -17,7 +18,8 @@ from app.models import (
     DeviceCredentials,
     ShowCommand,
     DeviceOS,
-    PipeOption
+    PipeOption,
+    OutputFormat
 )
 from app.device_manager import DeviceManager
 from app.config import settings
@@ -82,6 +84,12 @@ async def list_tools() -> list[Tool]:
                         "type": "integer",
                         "description": "Command timeout in seconds (default: 30)",
                         "default": 30
+                    },
+                    "output_format": {
+                        "type": "string",
+                        "enum": ["raw", "parsed", "both"],
+                        "description": "Output format: raw (default), parsed, or both",
+                        "default": "raw"
                     }
                 },
                 "required": ["hostname", "username", "password", "os", "commands"]
@@ -139,6 +147,14 @@ async def execute_show_commands_tool(arguments: dict) -> list[TextContent]:
         # Parse commands
         commands = arguments["commands"]
         timeout = arguments.get("timeout", 30)
+        output_format_arg = arguments.get("output_format", OutputFormat.RAW.value)
+        try:
+            output_format = OutputFormat(output_format_arg)
+        except ValueError:
+            return [TextContent(
+                type="text",
+                text=f"Invalid output_format '{output_format_arg}'. Must be one of: raw, parsed, both."
+            )]
         
         # Validate all commands
         show_commands = []
@@ -155,6 +171,7 @@ async def execute_show_commands_tool(arguments: dict) -> list[TextContent]:
         # Execute commands using existing DeviceManager
         device_manager = None
         results = []
+        parse_requested = output_format in (OutputFormat.PARSED, OutputFormat.BOTH)
         
         try:
             device_manager = DeviceManager(
@@ -166,32 +183,38 @@ async def execute_show_commands_tool(arguments: dict) -> list[TextContent]:
             
             for show_cmd in show_commands:
                 try:
-                    output = device_manager.execute_command(show_cmd)
+                    raw_output, parsed_output, parse_error = device_manager.execute_command(
+                        show_cmd,
+                        parse=parse_requested
+                    )
                     results.append({
                         "command": show_cmd.get_full_command(),
                         "success": True,
-                        "output": output
+                        "output": raw_output,
+                        "parsed": parsed_output,
+                        "parse_error": parse_error
                     })
                 except Exception as e:
                     results.append({
                         "command": show_cmd.get_full_command(),
                         "success": False,
+                        "output": "",
+                        "parsed": None,
+                        "parse_error": None,
                         "error": str(e)
                     })
             
-            # Format results
-            result_text = f"Device: {device_creds.hostname} ({device_creds.os})\n"
-            result_text += f"Commands executed: {len(results)}\n\n"
-            
-            for i, result in enumerate(results, 1):
-                result_text += f"--- Command {i}: {result['command']} ---\n"
-                if result['success']:
-                    result_text += f"{result['output']}\n"
-                else:
-                    result_text += f"ERROR: {result['error']}\n"
-                result_text += "\n"
-            
-            return [TextContent(type="text", text=result_text)]
+            response = {
+                "device": {
+                    "hostname": device_creds.hostname,
+                    "os": device_creds.os,
+                },
+                "output_format": output_format.value,
+                "timeout": timeout,
+                "results": results,
+            }
+            formatted = json.dumps(response, indent=2, default=str)
+            return [TextContent(type="text", text=formatted)]
             
         finally:
             if device_manager:
