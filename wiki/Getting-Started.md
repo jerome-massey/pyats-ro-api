@@ -38,10 +38,11 @@ curl http://localhost:8000/health
 Expected response:
 ```json
 {
-  "status": "healthy",
-  "version": "1.0.0"
+  "status": "healthy"
 }
 ```
+
+> **Note**: The current version (0.3.0) does not include a version field in the health check response.
 
 ### Option 2: Docker Compose
 
@@ -95,8 +96,7 @@ curl -X POST http://localhost:8000/api/v1/execute \
     ],
     "commands": [
       {"command": "show version"}
-    ],
-    "use_jumphost": false
+    ]
   }'
 ```
 
@@ -106,7 +106,7 @@ curl -X POST http://localhost:8000/api/v1/execute \
 {
   "results": [
     {
-      "device": "192.168.1.1",
+      "hostname": "192.168.1.1",
       "success": true,
       "commands": [
         {
@@ -115,14 +115,13 @@ curl -X POST http://localhost:8000/api/v1/execute \
           "output": "Cisco IOS XE Software, Version 16.09.03...",
           "error": null
         }
-      ]
+      ],
+      "error": null
     }
   ],
-  "summary": {
-    "total_devices": 1,
-    "successful_devices": 1,
-    "failed_devices": 0
-  }
+  "total_devices": 1,
+  "successful_devices": 1,
+  "failed_devices": 0
 }
 ```
 

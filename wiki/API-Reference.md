@@ -38,10 +38,11 @@ curl http://localhost:8000/health
 **Response**: `200 OK`
 ```json
 {
-  "status": "healthy",
-  "version": "1.0.0"
+  "status": "healthy"
 }
 ```
+
+> **Note**: The current version (0.3.0) does not include a version field in the health check response.
 
 ---
 
@@ -60,15 +61,11 @@ curl http://localhost:8000/
 ```json
 {
   "name": "PyATS Show Command API",
-  "version": "1.0.0",
-  "description": "Execute show commands on network devices via PyATS/Unicon",
+  "version": "0.3.0",
+  "description": "Execute show commands on network devices",
   "endpoints": {
-    "docs": "/docs",
-    "redoc": "/redoc",
     "health": "/health",
-    "execute": "/api/v1/execute",
-    "supported_os": "/api/v1/supported_os",
-    "pipe_options": "/api/v1/pipe_options"
+    "execute": "/api/v1/execute (POST)"
   }
 }
 ```
@@ -102,13 +99,12 @@ Content-Type: application/json
   "commands": [
     {
       "command": "string",
-      "pipe": {
-        "option": "include|exclude|begin|section",
-        "pattern": "string"
-      }
+      "pipe_option": "include|exclude|begin|section",
+      "pipe_value": "string"
     }
   ],
-  "timeout": 30
+  "timeout": 30,
+  "output_format": "raw|parsed|both"
 }
 ```
 
@@ -125,10 +121,10 @@ Content-Type: application/json
 | `devices[].enable_password` | string | No | Enable password if required |
 | `commands` | array | Yes | List of show commands |
 | `commands[].command` | string | Yes | Show command to execute |
-| `commands[].pipe` | object | No | Pipe filter options |
-| `commands[].pipe.option` | string | No | Filter type |
-| `commands[].pipe.pattern` | string | No | Filter pattern |
+| `commands[].pipe_option` | string | No | Pipe filter type (include, exclude, begin, section) |
+| `commands[].pipe_value` | string | No | Pattern for pipe filter |
 | `timeout` | integer | No | Command timeout in seconds (default: 30) |
+| `output_format` | string | No | Output format: raw (default), parsed, or both |
 
 **Supported OS Types**:
 - `ios` - Cisco IOS
@@ -162,10 +158,8 @@ curl -X POST http://localhost:8000/api/v1/execute \
       },
       {
         "command": "show ip interface brief",
-        "pipe": {
-          "option": "include",
-          "pattern": "up"
-        }
+        "pipe_option": "include",
+        "pipe_value": "up"
       }
     ],
     "timeout": 30
@@ -177,7 +171,7 @@ curl -X POST http://localhost:8000/api/v1/execute \
 {
   "results": [
     {
-      "device": "192.168.1.1",
+      "hostname": "192.168.1.1",
       "success": true,
       "commands": [
         {
@@ -192,14 +186,13 @@ curl -X POST http://localhost:8000/api/v1/execute \
           "output": "GigabitEthernet1    192.168.1.1     YES NVRAM  up     up",
           "error": null
         }
-      ]
+      ],
+      "error": null
     }
   ],
-  "summary": {
-    "total_devices": 1,
-    "successful_devices": 1,
-    "failed_devices": 0
-  }
+  "total_devices": 1,
+  "successful_devices": 1,
+  "failed_devices": 0
 }
 ```
 
@@ -337,17 +330,13 @@ curl http://localhost:8000/api/v1/pipe_options
   "commands": [
     {
       "command": "show ip interface brief",
-      "pipe": {
-        "option": "include",
-        "pattern": "up"
-      }
+      "pipe_option": "include",
+      "pipe_value": "up"
     },
     {
       "command": "show running-config",
-      "pipe": {
-        "option": "section",
-        "pattern": "interface"
-      }
+      "pipe_option": "section",
+      "pipe_value": "interface"
     }
   ]
 }

@@ -120,7 +120,12 @@ docker-compose -f docker-compose.nginx.yml up -d
 
 **Docker Configuration:**
 
-For jumphost support, edit your docker-compose file or use environment variables:
+> **⚠️ Legacy Approach**: The environment variable method below is deprecated. For new deployments, use the **SSH config file approach** (see below and [SSH_CONFIGURATION.md](SSH_CONFIGURATION.md)).
+
+<details>
+<summary>Legacy: Environment Variables (Deprecated)</summary>
+
+For jumphost support using environment variables (legacy method):
 
 ```yaml
 environment:
@@ -145,6 +150,8 @@ docker run -d \
   jeromemassey76/pyats-ro-api:latest
 ```
 
+</details>
+
 ### Option 4: Local Python Environment (Development)
 
 If you prefer to run without Docker:
@@ -157,9 +164,9 @@ source venv/bin/activate
 # Install dependencies
 pip install -r requirements.txt
 
-# Configure environment (optional for jumphost)
+# Configure environment (optional - legacy jumphost method)
 cp .env.example .env
-# Edit .env with your jumphost settings
+# Note: For jumphost, use SSH config files instead (see Configuration section below)
 
 # Run the server
 python run.py
@@ -704,27 +711,6 @@ Copyright (c) 2025 Jerome Massey
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
-
-## Support
-├── requirements.txt         # Python dependencies
-├── .env.example            # Example environment config
-├── .dockerignore           # Docker ignore rules
-├── .gitignore              # Git ignore rules
-├── run.py                  # Server startup script
-├── quickstart.sh           # Quick setup script
-└── README.md               # This file
-```
-
-## License
-
-MIT License - See LICENSE file for details
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Submit a pull request
 
 ## Support
 

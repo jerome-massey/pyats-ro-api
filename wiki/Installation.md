@@ -43,24 +43,24 @@ For production stability, pin to a specific version:
 
 ```bash
 # Specific version
-docker pull jeromemassey76/pyats-ro-api:v1.0.0
-docker run -d -p 8000:8000 jeromemassey76/pyats-ro-api:v1.0.0
+docker pull jeromemassey76/pyats-ro-api:v0.3.0
+docker run -d -p 8000:8000 jeromemassey76/pyats-ro-api:v0.3.0
 
 # Major.minor version (gets patch updates)
-docker pull jeromemassey76/pyats-ro-api:1.0
-docker run -d -p 8000:8000 jeromemassey76/pyats-ro-api:1.0
+docker pull jeromemassey76/pyats-ro-api:0.3
+docker run -d -p 8000:8000 jeromemassey76/pyats-ro-api:0.3
 
 # Major version only (gets minor and patch updates)
-docker pull jeromemassey76/pyats-ro-api:1
-docker run -d -p 8000:8000 jeromemassey76/pyats-ro-api:1
+docker pull jeromemassey76/pyats-ro-api:0
+docker run -d -p 8000:8000 jeromemassey76/pyats-ro-api:0
 ```
 
 ### Available Tags
 
 - `latest` - Latest stable release from main branch
-- `v1.x.x` - Specific version (e.g., `v1.0.0`, `v1.2.3`)
-- `1.x` - Major.minor versions (e.g., `1.0`, `1.2`)
-- `1` - Major version only
+- `v0.x.x` - Specific version (e.g., `v0.3.0`)
+- `0.x` - Major.minor versions (e.g., `0.3`)
+- `0` - Major version only
 
 ---
 
@@ -463,7 +463,7 @@ curl -k https://localhost:3000/health
 curl http://localhost:8000/health
 
 # Expected response:
-# {"status":"healthy","version":"1.0.0"}
+# {"status":"healthy"}
 
 # API documentation
 curl http://localhost:8000/docs
@@ -489,8 +489,7 @@ curl -X POST http://localhost:8000/api/v1/execute \
     ],
     "commands": [
       {"command": "show version"}
-    ],
-    "use_jumphost": false
+    ]
   }'
 ```
 

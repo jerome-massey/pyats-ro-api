@@ -53,6 +53,7 @@ Your code must pass all tests before we can merge it.
 
 1.  Push your branch to your fork.
 2.  Open a Pull Request against the `main` branch.
+   > **Note**: Currently, all PRs target `main`. A `develop` branch strategy is planned for future releases (see [DEVELOPMENT_ROADMAP.md](DEVELOPMENT_ROADMAP.md) for details).
 3.  Fill out the **Pull Request Template** completely.
 4.  Wait for the automated CI checks to pass.
 5.  I (or a maintainer) will review your code. We might suggest changes—this is a normal part of the process!

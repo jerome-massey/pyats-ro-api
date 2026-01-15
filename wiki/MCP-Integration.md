@@ -81,7 +81,7 @@ Execute show commands on a Cisco network device.
   "port": 22,
   "enable_password": null,
   "timeout": 30,
-  "use_jumphost": false
+  "output_format": "raw"
 }
 ```
 
@@ -94,29 +94,17 @@ Execute show commands on a Cisco network device.
 - `port` (optional): SSH port (default: 22)
 - `enable_password` (optional): Enable password
 - `timeout` (optional): Command timeout in seconds (default: 30)
-- `use_jumphost` (optional): Use global jumphost config (default: false)
+- `output_format` (optional): Output format: raw, parsed, or both (default: raw)
 
-### 2. `test_jumphost`
+> **Note**: Jumphost configuration is handled via SSH config files, not API/MCP parameters. See [SSH Configuration](SSH-Configuration) for setup.
 
-Test SSH jumphost connectivity.
-
-**Parameters**:
-```json
-{
-  "host": "jumphost.example.com",
-  "username": "jumpuser",
-  "key_path": "/root/.ssh/jumphost_key",
-  "port": 22
-}
-```
-
-### 3. `list_supported_os`
+### 2. `list_supported_os`
 
 List all supported network device operating systems.
 
 No parameters required.
 
-### 4. `list_pipe_options`
+### 3. `list_pipe_options`
 
 List available pipe filter options for show commands.
 

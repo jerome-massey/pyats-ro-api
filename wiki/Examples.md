@@ -204,10 +204,8 @@ curl -X POST http://localhost:8000/api/v1/execute \
     "commands": [
       {
         "command": "show ip interface brief",
-        "pipe": {
-          "option": "include",
-          "pattern": "up"
-        }
+        "pipe_option": "include",
+        "pipe_value": "up"
       }
     ]
   }'
@@ -232,10 +230,8 @@ curl -X POST http://localhost:8000/api/v1/execute \
     "commands": [
       {
         "command": "show ip interface brief",
-        "pipe": {
-          "option": "exclude",
-          "pattern": "administratively down"
-        }
+        "pipe_option": "exclude",
+        "pipe_value": "administratively down"
       }
     ]
   }'
@@ -260,10 +256,8 @@ curl -X POST http://localhost:8000/api/v1/execute \
     "commands": [
       {
         "command": "show running-config",
-        "pipe": {
-          "option": "begin",
-          "pattern": "interface GigabitEthernet"
-        }
+        "pipe_option": "begin",
+        "pipe_value": "interface GigabitEthernet"
       }
     ]
   }'
@@ -288,10 +282,8 @@ curl -X POST http://localhost:8000/api/v1/execute \
     "commands": [
       {
         "command": "show running-config",
-        "pipe": {
-          "option": "section",
-          "pattern": "router bgp"
-        }
+        "pipe_option": "section",
+        "pipe_value": "router bgp"
       }
     ]
   }'
@@ -314,24 +306,18 @@ curl -X POST http://localhost:8000/api/v1/execute \
     "commands": [
       {
         "command": "show ip interface brief",
-        "pipe": {
-          "option": "include",
-          "pattern": "up"
-        }
+        "pipe_option": "include",
+        "pipe_value": "up"
       },
       {
         "command": "show running-config",
-        "pipe": {
-          "option": "section",
-          "pattern": "interface"
-        }
+        "pipe_option": "section",
+        "pipe_value": "interface"
       },
       {
         "command": "show ip route",
-        "pipe": {
-          "option": "exclude",
-          "pattern": "variably subnetted"
-        }
+        "pipe_option": "exclude",
+        "pipe_value": "variably subnetted"
       }
     ]
   }'
@@ -339,11 +325,22 @@ curl -X POST http://localhost:8000/api/v1/execute \
 
 ---
 
-## Jumphost Examples
+## Jumphost Configuration
 
-### Global Jumphost Configuration
+> **Note**: Jumphost (SSH bastion host) configuration is handled via SSH config files, not API parameters.
+>
+> The API does not accept `use_jumphost` or per-device `jumphost` fields. Instead, configure jumphosts using SSH ProxyJump or ProxyCommand in your SSH configuration.
+>
+> For detailed setup instructions, see:
+> - [SSH Configuration Guide](SSH-Configuration) - Complete SSH config setup
+> - [Configuration Documentation](Configuration) - Environment and SSH settings
+>
+> Once SSH config is set up, simply make normal API calls with the target device hostname - SSH will automatically route through the configured jumphost.
 
-Use global jumphost config (set via environment variables):
+**Example with SSH Config**:
+
+1. Configure SSH config file (see SSH Configuration Guide for details)
+2. Make normal API request - jumphost routing is automatic:
 
 ```bash
 curl -X POST http://localhost:8000/api/v1/execute \
@@ -355,88 +352,6 @@ curl -X POST http://localhost:8000/api/v1/execute \
         "username": "admin",
         "password": "cisco123",
         "os": "iosxe"
-      }
-    ],
-    "commands": [
-      {"command": "show version"}
-    ],
-    "use_jumphost": true
-  }'
-```
-
-### Per-Device Jumphost
-
-Specify jumphost for specific device:
-
-```bash
-curl -X POST http://localhost:8000/api/v1/execute \
-  -H "Content-Type: application/json" \
-  -d '{
-    "devices": [
-      {
-        "hostname": "10.0.1.100",
-        "username": "admin",
-        "password": "cisco123",
-        "os": "iosxe",
-        "jumphost": {
-          "host": "jumphost.example.com",
-          "port": 22,
-          "username": "jumpuser",
-          "key_path": "/root/.ssh/jumphost_key"
-        }
-      }
-    ],
-    "commands": [
-      {"command": "show version"}
-    ]
-  }'
-```
-
-### Test Jumphost Connectivity
-
-```bash
-curl -X POST http://localhost:8000/api/v1/jumphost/test \
-  -H "Content-Type: application/json" \
-  -d '{
-    "jumphost": {
-      "host": "jumphost.example.com",
-      "port": 22,
-      "username": "jumpuser",
-      "key_path": "/root/.ssh/jumphost_key"
-    }
-  }'
-```
-
-### Multiple Devices with Different Jumphosts
-
-```bash
-curl -X POST http://localhost:8000/api/v1/execute \
-  -H "Content-Type: application/json" \
-  -d '{
-    "devices": [
-      {
-        "hostname": "10.0.1.100",
-        "username": "admin",
-        "password": "pass1",
-        "os": "iosxe",
-        "jumphost": {
-          "host": "jumphost1.example.com",
-          "port": 22,
-          "username": "user1",
-          "key_path": "/root/.ssh/key1"
-        }
-      },
-      {
-        "hostname": "10.0.2.100",
-        "username": "admin",
-        "password": "pass2",
-        "os": "nxos",
-        "jumphost": {
-          "host": "jumphost2.example.com",
-          "port": 22,
-          "username": "user2",
-          "key_path": "/root/.ssh/key2"
-        }
       }
     ],
     "commands": [
@@ -609,10 +524,8 @@ def get_interface_status(hostname, username, password, os="iosxe"):
         "commands": [
             {
                 "command": "show ip interface brief",
-                "pipe": {
-                    "option": "include",
-                    "pattern": "up"
-                }
+                "pipe_option": "include",
+                "pipe_value": "up"
             }
         ]
     }
